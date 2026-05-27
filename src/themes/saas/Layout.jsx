@@ -25,6 +25,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
 import ComplianceLinks from '../../components/ComplianceLinks';
 import LanguageSwitch from '../../components/LanguageSwitch';
+import TokenBoomSplash from './TokenBoomSplash';
 
 export default function SaasLayout() {
   const { t } = useTranslation();
@@ -38,7 +39,7 @@ export default function SaasLayout() {
   const closeConsoleTimer = useRef(null);
   const closeAccountTimer = useRef(null);
 
-  const siteName = site?.name || 'AstraLayer';
+  const siteName = site?.name || 'TokenBoomAi';
   const isAdmin = user?.is_admin || user?.role === 'admin';
   const displayName = user?.display_name || user?.username || user?.email;
   const accountPrimary = user?.email || displayName || 'Account';
@@ -148,24 +149,25 @@ export default function SaasLayout() {
   }, []);
 
   return (
-    <div className="theme-saas min-h-screen bg-[#fbfcff] text-slate-950">
+    <div className="theme-saas min-h-screen bg-[#0b061f] text-slate-950">
+      <TokenBoomSplash />
       {site?.announcement && (
-        <div className="border-b border-cyan-100 bg-cyan-50 px-4 py-2 text-center text-sm text-cyan-800">
+        <div className="border-b border-cyan-300/20 bg-[#0b061f] px-4 py-2 text-center text-sm font-semibold text-cyan-100">
           {site.announcement}
         </div>
       )}
 
-      <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-cyan-300/20 bg-[#0b061f]/86 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3 md:flex-none" onClick={() => setMobileMenuOpen(false)}>
             {site?.logo ? (
-              <img src={site.logo} alt={siteName} className="h-8 w-auto max-w-[140px] object-contain sm:max-w-[180px]" />
+              <img src={site.logo} alt={siteName} className="h-10 w-10 shrink-0 rounded-xl object-cover shadow-lg shadow-fuchsia-500/20" />
             ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-sm font-semibold text-white">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-400 text-sm font-black text-[#0b061f]">
                 {siteName.charAt(0)}
               </span>
             )}
-            <span className="truncate text-base font-semibold tracking-normal text-slate-950">{siteName}</span>
+            <span className="truncate text-base font-black tracking-normal text-white sm:text-lg">{siteName}</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
@@ -177,8 +179,8 @@ export default function SaasLayout() {
                   to={to}
                   className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(item)
-                      ? 'bg-slate-950 text-white'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                      ? 'bg-cyan-300 text-[#0b061f] shadow-sm shadow-cyan-400/20'
+                      : 'text-slate-200 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <Icon size={16} />
@@ -210,8 +212,8 @@ export default function SaasLayout() {
                 }}
                 className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   isActive(consoleNavItem)
-                    ? 'bg-slate-950 text-white'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                    ? 'bg-cyan-300 text-[#0b061f] shadow-sm shadow-cyan-400/20'
+                    : 'text-slate-200 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <LayoutDashboard size={16} />
@@ -220,7 +222,7 @@ export default function SaasLayout() {
               </Link>
 
               {consoleMenuOpen && (
-                <div className="absolute left-0 top-full z-50 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-950/10" role="menu">
+                <div className="absolute left-0 top-full z-50 w-64 rounded-xl border border-cyan-300/20 bg-[#120b2f] p-2 shadow-xl shadow-cyan-950/30" role="menu">
                   {consoleMenuItems.map((item) => {
                     const { label, icon: Icon } = item;
                     return (
@@ -230,8 +232,8 @@ export default function SaasLayout() {
                         role="menuitem"
                         className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                           isActive(item)
-                            ? 'bg-slate-950 text-white'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                            ? 'bg-cyan-300 text-[#0b061f]'
+                            : 'text-slate-200 hover:bg-white/10 hover:text-white'
                         }`}
                       >
                         <Icon size={16} />
@@ -245,7 +247,7 @@ export default function SaasLayout() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <LanguageSwitch className="text-slate-500 hover:bg-slate-100 hover:text-slate-900" />
+            <LanguageSwitch className="text-slate-200 hover:bg-white/10 hover:text-white" />
             {user ? (
               <div
                 className="relative hidden py-2 sm:block"
@@ -265,8 +267,8 @@ export default function SaasLayout() {
                   onClick={openAccountMenu}
                   className={`inline-flex max-w-[230px] items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     accountMenuOpen
-                      ? 'bg-slate-100 text-slate-950'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                      ? 'bg-white/10 text-white'
+                      : 'text-slate-200 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <UserCircle size={16} className="shrink-0" />
@@ -275,16 +277,16 @@ export default function SaasLayout() {
                 </button>
 
                 {accountMenuOpen && (
-                  <div className="absolute right-0 top-full z-50 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-950/10" role="menu">
-                    <div className="border-b border-slate-100 px-3 py-2">
-                      <p className="truncate text-sm font-semibold text-slate-950">{accountPrimary}</p>
-                      <p className="truncate text-xs text-slate-500">{accountSecondary}</p>
+                  <div className="absolute right-0 top-full z-50 w-64 rounded-xl border border-cyan-300/20 bg-[#120b2f] p-2 shadow-xl shadow-cyan-950/30" role="menu">
+                    <div className="border-b border-white/10 px-3 py-2">
+                      <p className="truncate text-sm font-semibold text-white">{accountPrimary}</p>
+                      <p className="truncate text-xs text-slate-400">{accountSecondary}</p>
                     </div>
                     <button
                       type="button"
                       role="menuitem"
                       onClick={handleLogout}
-                      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
+                      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
                     >
                       <LogOut size={16} />
                       {t('nav.logout')}
@@ -294,17 +296,17 @@ export default function SaasLayout() {
               </div>
             ) : (
               <div className="hidden items-center gap-2 sm:flex">
-                <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-950">
+                <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-200 hover:bg-white/10 hover:text-white">
                   {t('nav.login')}
                 </Link>
-                <Link to="/register" className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
+                <Link to="/register" className="rounded-lg bg-cyan-300 px-4 py-2 text-sm font-black text-[#0b061f] shadow-sm shadow-cyan-400/20 hover:bg-lime-300">
                   {t('nav.signUp')}
                 </Link>
               </div>
             )}
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 md:hidden"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-100 transition-colors hover:bg-white/10 md:hidden"
               onClick={() => setMobileMenuOpen((open) => !open)}
               aria-label="Toggle menu"
             >
@@ -315,11 +317,11 @@ export default function SaasLayout() {
 
         {mobileMenuOpen && (
           <div
-            className="fixed inset-x-0 top-16 z-40 h-[calc(100dvh-4rem)] bg-slate-950/20 backdrop-blur-sm md:hidden"
+            className="fixed inset-x-0 top-16 z-40 h-[calc(100dvh-4rem)] bg-[#0b061f]/70 backdrop-blur-sm md:hidden"
             onClick={() => setMobileMenuOpen(false)}
           >
             <nav
-              className="ml-auto flex h-full w-[min(23rem,calc(100vw-1.25rem))] flex-col gap-1 overflow-y-auto border-l border-slate-200 bg-white px-4 py-4 shadow-2xl shadow-slate-950/15"
+              className="ml-auto flex h-full w-[min(23rem,calc(100vw-1.25rem))] flex-col gap-1 overflow-y-auto border-l border-cyan-300/20 bg-[#120b2f] px-4 py-4 shadow-2xl shadow-cyan-950/30"
               onClick={(event) => event.stopPropagation()}
             >
               {publicNavItems.map((item) => {
@@ -330,7 +332,7 @@ export default function SaasLayout() {
                     to={to}
                     onClick={closeMenus}
                     className={`inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium ${
-                      isActive(item) ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'
+                      isActive(item) ? 'bg-cyan-300 text-[#0b061f]' : 'text-slate-200 hover:bg-white/10'
                     }`}
                   >
                     <Icon size={16} />
@@ -338,12 +340,12 @@ export default function SaasLayout() {
                   </Link>
                 );
               })}
-              <div className="mt-2 border-t border-slate-100 pt-3">
+              <div className="mt-2 border-t border-white/10 pt-3">
                 <Link
                   to={consolePath}
                   onClick={closeMenus}
                   className={`inline-flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold ${
-                    isActive(consoleNavItem) ? 'bg-slate-950 text-white' : 'text-slate-700 hover:bg-slate-100'
+                    isActive(consoleNavItem) ? 'bg-cyan-300 text-[#0b061f]' : 'text-slate-100 hover:bg-white/10'
                   }`}
                 >
                   <LayoutDashboard size={16} />
@@ -358,7 +360,7 @@ export default function SaasLayout() {
                         to={navTarget(item)}
                         onClick={closeMenus}
                         className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
-                          isActive(item) ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'
+                          isActive(item) ? 'bg-cyan-300 text-[#0b061f]' : 'text-slate-200 hover:bg-white/10'
                         }`}
                       >
                         <Icon size={15} />
@@ -369,16 +371,16 @@ export default function SaasLayout() {
                 </div>
               </div>
               {user && (
-                <div className="mt-2 border-t border-slate-100 pt-3">
+                <div className="mt-2 border-t border-white/10 pt-3">
                   <div className="px-3 pb-1">
-                    <p className="truncate text-sm font-semibold text-slate-950">{accountPrimary}</p>
-                    <p className="truncate text-xs text-slate-500">{accountSecondary}</p>
+                    <p className="truncate text-sm font-semibold text-white">{accountPrimary}</p>
+                    <p className="truncate text-xs text-slate-400">{accountSecondary}</p>
                   </div>
                   <div className="grid gap-1 pl-3">
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-600 hover:bg-slate-100"
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-200 hover:bg-white/10"
                     >
                       <LogOut size={15} />
                       {t('nav.logout')}
@@ -387,11 +389,11 @@ export default function SaasLayout() {
                 </div>
               )}
               {!user && (
-                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
-                  <Link to="/login" onClick={closeMenus} className="rounded-lg border border-slate-200 px-3 py-2 text-center text-sm font-medium text-slate-700">
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-white/10 pt-3">
+                  <Link to="/login" onClick={closeMenus} className="rounded-lg border border-white/15 px-3 py-2 text-center text-sm font-medium text-slate-100">
                     {t('nav.login')}
                   </Link>
-                  <Link to="/register" onClick={closeMenus} className="rounded-lg bg-slate-950 px-3 py-2 text-center text-sm font-semibold text-white">
+                  <Link to="/register" onClick={closeMenus} className="rounded-lg bg-cyan-300 px-3 py-2 text-center text-sm font-black text-[#0b061f]">
                     {t('nav.signUp')}
                   </Link>
                 </div>
@@ -459,18 +461,18 @@ export default function SaasLayout() {
         )}
       </main>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-slate-500 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-          <p>&copy; {new Date().getFullYear()} {siteName}. AI model marketplace and API gateway.</p>
+      <footer className="border-t border-cyan-300/20 bg-[#0b061f]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-slate-300 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+          <p>&copy; {new Date().getFullYear()} {siteName}. Token marketplace and AI API gateway.</p>
           <div className="flex flex-wrap items-center gap-4">
-            <Link to="/models" className="hover:text-slate-950">Models</Link>
-            <Link to="/rankings" className="hover:text-slate-950">Rankings</Link>
-            <Link to="/docs/quickstart" className="hover:text-slate-950">Docs</Link>
-            <Link to={user ? '/tokens' : '/login'} className="hover:text-slate-950">API Keys</Link>
-            <Link to="/packages" className="hover:text-slate-950">{t('nav.packages')}</Link>
-            <Link to={user ? '/logs' : '/login'} className="hover:text-slate-950">Logs</Link>
-            <Link to="/apps" className="hover:text-slate-950">Apps</Link>
-            <ComplianceLinks site={site} linkClassName="hover:text-slate-950" />
+            <Link to="/models" className="hover:text-cyan-200">Models</Link>
+            <Link to="/rankings" className="hover:text-cyan-200">Rankings</Link>
+            <Link to="/docs/quickstart" className="hover:text-cyan-200">Docs</Link>
+            <Link to={user ? '/tokens' : '/login'} className="hover:text-cyan-200">API Keys</Link>
+            <Link to="/packages" className="hover:text-cyan-200">{t('nav.packages')}</Link>
+            <Link to={user ? '/logs' : '/login'} className="hover:text-cyan-200">Logs</Link>
+            <Link to="/apps" className="hover:text-cyan-200">Apps</Link>
+            <ComplianceLinks site={site} linkClassName="hover:text-cyan-200" />
           </div>
         </div>
       </footer>

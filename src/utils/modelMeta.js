@@ -1050,7 +1050,7 @@ const jsonString = (value) => JSON.stringify(String(value));
 
 export const buildCurlSnippet = ({
   baseUrl = PUBLIC_API_BASE_URL,
-  apiKey = '$SUBROUTER_API_KEY',
+  apiKey = '$TOKENBOOMAI_API_KEY',
   modelId,
   prompt = 'Explain quantum computing in one paragraph.',
   temperature,
@@ -1072,7 +1072,7 @@ ${optionalLines ? `${optionalLines}\n` : ''}    "messages": [
   }'`;
 };
 
-export const buildJsSnippet = ({ baseUrl = PUBLIC_API_BASE_URL, apiKey = 'process.env.SUBROUTER_API_KEY', modelId }) => `const response = await fetch("${baseUrl}/chat/completions", {
+export const buildJsSnippet = ({ baseUrl = PUBLIC_API_BASE_URL, apiKey = 'process.env.TOKENBOOMAI_API_KEY', modelId }) => `const response = await fetch("${baseUrl}/chat/completions", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -1080,14 +1080,14 @@ export const buildJsSnippet = ({ baseUrl = PUBLIC_API_BASE_URL, apiKey = 'proces
   },
   body: JSON.stringify({
     model: "${modelId}",
-    messages: [{ role: "user", content: "Hello from SubRouter" }]
+    messages: [{ role: "user", content: "Hello from TokenBoomAi" }]
   })
 });
 
 const data = await response.json();
 console.log(data.choices?.[0]?.message?.content);`;
 
-export const buildPythonSnippet = ({ baseUrl = PUBLIC_API_BASE_URL, apiKey = 'os.environ["SUBROUTER_API_KEY"]', modelId }) => `import os
+export const buildPythonSnippet = ({ baseUrl = PUBLIC_API_BASE_URL, apiKey = 'os.environ["TOKENBOOMAI_API_KEY"]', modelId }) => `import os
 from openai import OpenAI
 
 client = OpenAI(
@@ -1097,7 +1097,7 @@ client = OpenAI(
 
 response = client.chat.completions.create(
     model="${modelId}",
-    messages=[{"role": "user", "content": "Hello from SubRouter"}]
+    messages=[{"role": "user", "content": "Hello from TokenBoomAi"}]
 )
 
 print(response.choices[0].message.content)`;

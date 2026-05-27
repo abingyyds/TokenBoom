@@ -227,7 +227,7 @@ export default function ModelDetail() {
               <h2 className="text-xl font-semibold text-slate-950">API usage</h2>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Use the OpenAI-compatible chat completions shape with this model id, your SubRouter API key, and the API base URL.
+              Use the OpenAI-compatible chat completions shape with this model id, your TokenBoomAi API key, and the API base URL.
             </p>
             <div className="mt-5 grid gap-5">
               <CodeBlock title="curl" language="bash" code={buildCurlSnippet({ baseUrl, modelId: id })} />

@@ -13,7 +13,7 @@ The single service does three things:
 Create one Railway service from this GitHub repository:
 
 ```text
-New Project -> Deploy from GitHub repo -> abingyyds/SASSAI
+New Project -> Deploy from GitHub repo -> abingyyds/TokenBoom
 ```
 
 Railway will use the root `Dockerfile`. No Caddy service and no second Node service are needed.
@@ -38,11 +38,11 @@ SUBROUTER_INTERNAL_TOKEN=optional_internal_token
 SITE_SAAS_STORE=/data/site-saas-store.json
 ```
 
-`SUBROUTER_API_BASE` must point to the real SubRouter backend, not to this SASSAI domain.
+`SUBROUTER_API_BASE` must point to the real downstream backend, not to this TokenBoomAi domain.
 
 `PUBLIC_SITE_URL` should be the domain users open in their browser. It is also used when the SaaS backend calls SubRouter during automatic activation.
 
-`SUBROUTER_SITE_HOST` is the domain SASSAI sends to SubRouter for distributor-site lookup. Use the system domain from SubRouter, for example `okdoki.subrouter.ai`, when your public DNS points to Railway instead of `subrouter.ai`.
+`SUBROUTER_SITE_HOST` is the domain TokenBoomAi sends downstream for distributor-site lookup. Use the system domain from the downstream service when your public DNS points to Railway.
 
 `SITE_SAAS_STORE` already defaults to `/data/site-saas-store.json` in Docker, so you normally do not need to set it manually.
 
@@ -66,11 +66,11 @@ Then configure the same domain in the SubRouter distributor-site settings, for e
 ai.yourdomain.com
 ```
 
-If the SubRouter admin page tells you to point DNS to `subrouter.ai`, ignore that DNS step for this SASSAI deployment. That instruction belongs to the original SubRouter-hosted distributor frontend.
+If the downstream admin page tells you to point DNS elsewhere, ignore that DNS step for this TokenBoomAi deployment. That instruction belongs to the original hosted distributor frontend.
 
-For SASSAI, DNS must point to the Railway service running this repository. SubRouter only needs the custom domain saved in its distributor-site settings so the backend can identify the site.
+For TokenBoomAi, DNS must point to the Railway service running this repository. The downstream service only needs the custom domain saved in its distributor-site settings so the backend can identify the site.
 
-The SubRouter theme dropdown can stay on any value. SASSAI always renders the dedicated `saas` theme.
+The downstream theme dropdown can stay on any value. TokenBoomAi always renders the dedicated `saas` theme.
 
 ## Site Admin
 

@@ -1,8 +1,8 @@
 {
-  "name": "subrouter-dist-site",
+  "name": "tokenboomai",
   "version": "1.0.0",
   "private": false,
-  "description": "SubRouter distributor site template - A beautiful open-source frontend for AI API resellers",
+  "description": "TokenBoomAi token marketplace and OpenAI-compatible API storefront",
   "license": "MIT",
   "type": "module",
   "scripts": {

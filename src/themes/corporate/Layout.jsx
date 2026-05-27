@@ -14,7 +14,7 @@ export default function CorporateLayout() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const siteName = site?.name || 'AI Platform';
+  const siteName = site?.name || 'TokenBoomAi';
 
   const navItems = [
     { to: '/', label: t('nav.home'), auth: false },

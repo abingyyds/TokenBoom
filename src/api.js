@@ -81,7 +81,7 @@ const shouldUseDevMock = () =>
 const previewResponse = (data) => Promise.resolve({ data: { success: true, data } });
 
 const previewSite = (theme = 'saas') => ({
-  name: 'AstraLayer',
+  name: 'TokenBoomAi',
   theme_template: theme || 'saas',
   enable_topup: true,
   top_up_link: 'https://example.com/redeem-codes',

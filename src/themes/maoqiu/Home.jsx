@@ -21,7 +21,7 @@ import CountUp from '../../components/bits/CountUp';
 import FadeContent from '../../components/bits/FadeContent';
 import RotatingEquiv from '../../components/bits/RotatingEquiv';
 import { packageQuotaDollars, useHomeData } from '../shared/useHomeData';
-import heroImage from '../../assets/sassai-logo.png';
+import heroImage from '../../assets/tokenboomai-logo.png';
 
 const features = [
   { icon: Gauge, title: 'lightningFast', desc: 'lightningFastDesc', color: 'from-[#0788ff] to-[#2250ff]' },
@@ -204,7 +204,7 @@ function HeroPanel({ models, siteName }) {
           <div className="relative overflow-hidden rounded-xl border border-blue-100 bg-[#fbfdff] p-5">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_42%_28%,rgba(7,136,255,0.1),transparent_34%),radial-gradient(circle_at_72%_22%,rgba(239,75,255,0.12),transparent_32%)]" />
             <div className="maoqiu-hero-orbit" />
-            <img src={heroImage} alt={siteName || 'Maoqiu AI'} className="relative mx-auto aspect-square w-full max-w-[260px] object-contain maoqiu-hero-mark" />
+            <img src={heroImage} alt={siteName || 'TokenBoomAi'} className="relative mx-auto aspect-square w-full max-w-[260px] object-contain maoqiu-hero-mark" />
           </div>
 
           <div className="space-y-3">

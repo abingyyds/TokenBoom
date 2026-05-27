@@ -67,14 +67,14 @@ export default function DocsQuickstart() {
   const chatModelId = getModelId(picked.chat || models[0] || { model_name: 'gpt-4o-mini' });
   const visionModelId = getModelId(picked.image || picked.chat || { model_name: 'vision-model-id' });
 
-  const envSnippet = `SUBROUTER_API_KEY=sk-your-api-key
-SUBROUTER_BASE_URL=${baseUrl}
-SUBROUTER_MODEL=${chatModelId}`;
+  const envSnippet = `TOKENBOOMAI_API_KEY=sk-your-api-key
+TOKENBOOMAI_BASE_URL=${baseUrl}
+TOKENBOOMAI_MODEL=${chatModelId}`;
 
   const openAiSdkJs = `import OpenAI from "openai";
 
 const client = new OpenAI({
-  apiKey: process.env.SUBROUTER_API_KEY,
+  apiKey: process.env.TOKENBOOMAI_API_KEY,
   baseURL: "${baseUrl}"
 });
 
@@ -113,8 +113,8 @@ for await (const part of stream) {
       <CossPageHeader
         eyebrow="Documentation"
         icon={BookOpen}
-        title="SubRouter API quickstart"
-        description="Use a SubRouter API key with the API base URL, choose a public model id, and send OpenAI-compatible chat completions requests."
+        title="TokenBoomAi API quickstart"
+        description="Use a TokenBoomAi API key with the API base URL, choose a public model id, and send OpenAI-compatible chat completions requests."
         secondary="The quickstart focuses on key creation, base URL, model selection, request shapes, multimodal input, pricing, and migration notes."
         actions={(
           <CossCardFrame className="p-5">
@@ -193,7 +193,7 @@ for await (const part of stream) {
                 title="Endpoint"
                 language="bash"
                 code={`POST ${baseUrl}/chat/completions
-Authorization: Bearer $SUBROUTER_API_KEY
+Authorization: Bearer $TOKENBOOMAI_API_KEY
 Content-Type: application/json`}
               />
             </DocCard>
@@ -284,9 +284,9 @@ Content-Type: application/json`}
                 code={`# OpenAI or OpenRouter client
 baseURL=https://api.openai.com/v1
 
-# SubRouter client
+# TokenBoomAi client
 baseURL=${baseUrl}
-apiKey=$SUBROUTER_API_KEY
+apiKey=$TOKENBOOMAI_API_KEY
 model=${chatModelId}`}
               />
             </DocCard>
@@ -359,6 +359,6 @@ function pickDocsModels(models) {
 function jsonCurl(endpoint, body) {
   return `curl -X POST ${endpoint} \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $SUBROUTER_API_KEY" \\
+  -H "Authorization: Bearer $TOKENBOOMAI_API_KEY" \\
   -d '${JSON.stringify(body, null, 2).replace(/'/g, "'\"'\"'")}'`;
 }

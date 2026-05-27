@@ -65,7 +65,7 @@ const defaultPrompts = {
   chat: 'Write a concise product launch checklist for an AI API.',
   image: 'A polished dashboard for an AI model marketplace, clean lighting, realistic UI, high detail.',
   video: 'A 6 second product demo shot showing a developer selecting an AI model and sending a request.',
-  audio: 'Welcome to SubRouter. Choose a model, copy the request, and run it with your API key.',
+  audio: 'Welcome to TokenBoomAi. Choose a model, copy the request, and run it with your API key.',
 };
 
 const CONVERSATION_STORAGE_KEY = 'sassai.playground.conversations.v1';
@@ -386,7 +386,7 @@ export default function Playground() {
     if (currentKey) return currentKey;
 
     if (!user) {
-      throw new Error('Paste a SubRouter API key in the inspector, or sign in and create an API key before running this request.');
+      throw new Error('Paste a TokenBoomAi API key in the inspector, or sign in and create an API key before running this request.');
     }
 
     setLoadingKeys(true);
@@ -540,7 +540,7 @@ export default function Playground() {
     try {
       runApiKey = await ensureApiKeyForRun();
     } catch (error) {
-      const guidanceMessage = createMessage('error', error.message || 'Add a SubRouter API key in the inspector to run this request. The message was saved, but no model call was made.', {
+      const guidanceMessage = createMessage('error', error.message || 'Add a TokenBoomAi API key in the inspector to run this request. The message was saved, but no model call was made.', {
         modelId,
         mode: activeMode,
       });
@@ -2190,13 +2190,13 @@ function buildRequest({
     body,
     curl: `curl -X POST ${endpoint} \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer $SUBROUTER_API_KEY" \\
+  -H "Authorization: Bearer $TOKENBOOMAI_API_KEY" \\
   -d '${shellQuoteJson(json)}'`,
     javascript: `const response = await fetch("${endpoint}", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
-    "Authorization": \`Bearer \${process.env.SUBROUTER_API_KEY}\`
+    "Authorization": \`Bearer \${process.env.TOKENBOOMAI_API_KEY}\`
   },
   body: JSON.stringify(${json})
 });
@@ -2210,7 +2210,7 @@ response = requests.post(
     "${endpoint}",
     headers={
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.environ['SUBROUTER_API_KEY']}",
+        "Authorization": f"Bearer {os.environ['TOKENBOOMAI_API_KEY']}",
     },
     json=${toPythonLiteral(body)}
 )

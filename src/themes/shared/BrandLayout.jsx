@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
 import ComplianceLinks from '../../components/ComplianceLinks';
 import LanguageSwitch from '../../components/LanguageSwitch';
-import sassaiLogo from '../../assets/sassai-logo.png';
+import tokenBoomLogo from '../../assets/tokenboomai-logo.png';
 
 const configs = {
   aurora: {
@@ -68,7 +68,7 @@ const configs = {
     mobileActive: 'bg-[#eef5ff] text-[#2352ff]',
     mobileIdle: 'text-slate-600 hover:bg-[#f4f7ff] hover:text-[#071337]',
     footer: 'mt-auto border-t border-slate-200 bg-white',
-    logoImage: sassaiLogo,
+    logoImage: tokenBoomLogo,
   },
 };
 
@@ -80,7 +80,7 @@ export default function BrandLayout({ variant }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const siteName = site?.name || 'AI Platform';
+  const siteName = site?.name || 'TokenBoomAi';
 
   const navItems = [
     { to: '/', label: t('nav.home'), auth: false },

@@ -274,7 +274,7 @@ export default function Tokens() {
   const quickstartCurl = buildCurlSnippet({
     baseUrl,
     modelId: selectedQuickstartModelId,
-    prompt: 'Say hello from my SubRouter key.',
+    prompt: 'Say hello from my TokenBoomAi key.',
   });
   const selectedGroup = selectedGroupId > 0
     ? keyGroups.find((group) => group.id === selectedGroupId)

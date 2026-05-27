@@ -5,8 +5,8 @@ import { PUBLIC_API_BASE_URL, normalizePublicApiBaseUrl } from '../constants/api
 const SiteContext = createContext(null);
 
 const DEFAULT_SITE = {
-  name: 'SubRouter',
-  logo: '/sassai-logo.svg',
+  name: 'TokenBoomAi',
+  logo: '/tokenboomai-logo.png',
   favicon: '/favicon.png',
   theme_template: 'saas',
   enable_topup: true,
@@ -21,7 +21,7 @@ const DEFAULT_SITE = {
   },
 };
 
-const siteCacheKey = 'dist-site-info-cache-v1';
+const siteCacheKey = 'dist-site-info-cache-v2';
 
 // Map theme template name → CSS class(es) to apply on <body>
 const themeClassMap = {
@@ -173,7 +173,7 @@ export function SiteProvider({ children }) {
     if (previewTheme) {
       const previewSite = normalizeSite({
         ...DEFAULT_SITE,
-        name: 'AstraLayer',
+        name: 'TokenBoomAi',
         theme_template: previewTheme,
         enable_topup: true,
         top_up_link: 'https://example.com/redeem-codes',

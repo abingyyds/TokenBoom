@@ -27,3 +27,6 @@ pnpm-debug.log*
 
 # Local Codex task notes
 CODEX_*.md
+
+# Generated image drafts
+output/

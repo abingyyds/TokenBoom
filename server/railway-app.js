@@ -151,7 +151,7 @@ function proxySubRouter(req, res) {
   Object.assign(headers, {
     Host: upstreamHost,
     'X-Forwarded-Host': upstreamHost,
-    'X-SASSAI-Public-Host': publicHost,
+    'X-TokenBoomAi-Public-Host': publicHost,
     'X-Forwarded-Proto': req.headers['x-forwarded-proto'] || 'https',
     'X-Forwarded-For': [req.headers['x-forwarded-for'], req.socket.remoteAddress].filter(Boolean).join(', '),
   });
@@ -273,7 +273,7 @@ createServer(async (req, res) => {
 
   return serveStatic(req, res, url);
 }).listen(port, '0.0.0.0', () => {
-  console.log(`SASSAI single-service app listening on http://0.0.0.0:${port}`);
+  console.log(`TokenBoomAi single-service app listening on http://0.0.0.0:${port}`);
   console.log(`Static dir: ${distDir}`);
   console.log(`SubRouter upstream: ${subrouterBase}`);
   console.log(`SubRouter site host: ${subrouterSiteHost || '(public request host)'}`);

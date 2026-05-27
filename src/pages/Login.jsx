@@ -43,7 +43,7 @@ export default function Login() {
     setLoading(false);
   };
 
-  const siteName = site?.name || 'SubRouter';
+  const siteName = site?.name || 'TokenBoomAi';
   const featureRows = [
     { icon: KeyRound, title: 'API keys', text: 'Create, review, and rotate keys from the console.' },
     { icon: Boxes, title: 'Model catalog', text: 'Compare public model ids and price signals before launch.' },
@@ -63,7 +63,7 @@ export default function Login() {
               Sign in to {siteName}
             </h1>
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-              Access API keys, model tools, usage history, and playground workflows from a compact SubRouter workspace.
+              Access API keys, token routes, usage history, and playground workflows from a compact TokenBoomAi workspace.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="coss-chip">OpenAI-compatible API</span>

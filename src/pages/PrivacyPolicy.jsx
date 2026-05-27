@@ -79,7 +79,7 @@ const privacySections = [
 
 export default function PrivacyPolicy() {
   const { site } = useSite();
-  const siteName = site?.name || 'SubRouter';
+  const siteName = site?.name || 'TokenBoomAi';
   const supportEmail = getSupportEmail(site);
 
   return (

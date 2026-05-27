@@ -68,7 +68,7 @@ const snippetTabs = [
 ];
 
 const GSAP_CDN_URL = 'https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js';
-const GSAP_SCRIPT_ID = 'sassai-home-gsap';
+const GSAP_SCRIPT_ID = 'tokenboom-home-gsap';
 
 function useHomeMotion(scopeRef) {
   useEffect(() => {
@@ -178,7 +178,7 @@ export default function SaasHome() {
   const [packages, setPackages] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSnippet, setActiveSnippet] = useState('curl');
-  const siteName = site?.name || 'SubRouter';
+  const siteName = site?.name || 'TokenBoomAi';
   const baseUrl = apiBaseUrl;
 
   useHomeMotion(homeRef);
@@ -234,35 +234,35 @@ export default function SaasHome() {
   ], [categoryGroups, displayModels.length, enabledModels.length]);
 
   const heroStats = [
-    { label: 'Public models', value: `${enabledModels.length || 50}+`, detail: 'catalog ready' },
-    { label: 'Capability groups', value: `${categoryGroups.length || 6}+`, detail: 'use-case filters' },
-    { label: 'Plan credits', value: totalCredits > 0 ? `$${formatCompactNumber(totalCredits)}` : 'API', detail: 'account controlled' },
+    { label: 'Token routes', value: `${enabledModels.length || 50}+`, detail: 'model liquidity' },
+    { label: 'Boom lanes', value: `${categoryGroups.length || 6}+`, detail: 'capability clusters' },
+    { label: 'Credit firepower', value: totalCredits > 0 ? `$${formatCompactNumber(totalCredits)}` : 'API', detail: 'ready to spend' },
   ];
 
   const valueCards = [
     {
       icon: Database,
       tone: 'cyan',
-      title: 'Model marketplace',
-      text: 'Search public model ids, availability, capability tags, and fit signals before choosing a production default.',
+      title: 'Token marketplace',
+      text: 'Browse model routes like a live token board: price, availability, and capability signals stay visible before launch.',
     },
     {
       icon: ShieldCheck,
       tone: 'emerald',
-      title: 'Enterprise access',
-      text: 'API keys, account controls, and the OpenAI-compatible base URL stay predictable from prototype to launch.',
+      title: 'Controlled blast radius',
+      text: 'API keys, account controls, and the OpenAI-compatible base URL keep high-volume token spend predictable.',
     },
     {
       icon: Code2,
       tone: 'slate',
-      title: 'Drop-in integration',
+      title: 'Drop-in ignition',
       text: `Keep existing OpenAI-style clients and set the base URL to ${baseUrl}.`,
     },
     {
       icon: Gauge,
       tone: 'amber',
-      title: 'Official pricing',
-      text: 'Compare input, output, cache, and per-call economics using the public pricing surface already used across the app.',
+      title: 'Live token economics',
+      text: 'Compare input, output, cache, and per-call costs from the same pricing surface used across the app.',
     },
   ];
 
@@ -278,25 +278,26 @@ export default function SaasHome() {
     <div ref={homeRef} className="coss-page overflow-hidden">
       <HomeMotionStyles />
 
-      <section className="relative overflow-hidden border-b border-slate-200/80 bg-white">
+      <section className="relative overflow-hidden border-b border-cyan-300/20 bg-[#0b061f]">
         <div className="saas-home-ambient absolute inset-0" />
-        <div className="saas-home-hero-grid absolute inset-0 opacity-80" />
-        <div className="saas-home-noise absolute inset-0 opacity-[0.13]" />
+        <div className="saas-home-hero-grid absolute inset-0 opacity-70" />
+        <div className="saas-home-noise absolute inset-0 opacity-[0.16]" />
+        <div className="saas-home-burst absolute left-1/2 top-10 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full" />
         <CossSection className="relative py-10 sm:py-14 lg:py-16">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,0.96fr)_minmax(390px,0.78fr)] lg:items-center">
             <div className="min-w-0">
-              <div data-home-reveal="hero" className="coss-chip mb-5">
+              <div data-home-reveal="hero" className="coss-chip mb-5 tokenboom-chip">
                 <Sparkles size={15} />
-                {siteName} model gateway
+                {siteName} token blast gateway
               </div>
-              <h1 data-home-reveal="hero" className="max-w-4xl text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
-                One enterprise-grade OpenAI-compatible gateway for production LLM apps.
+              <h1 data-home-reveal="hero" className="max-w-4xl text-4xl font-black tracking-normal text-white sm:text-5xl lg:text-6xl">
+                Buy tokens. Route models. Hit the boom button for AI apps.
               </h1>
-              <p data-home-reveal="hero" className="mt-5 max-w-3xl text-xl leading-8 text-slate-700 sm:text-2xl sm:leading-9">
-                Discover models, compare official prices, issue API keys, and ship through a single stable endpoint built for teams moving AI workloads into production.
+              <p data-home-reveal="hero" className="mt-5 max-w-3xl text-xl leading-8 text-cyan-50/90 sm:text-2xl sm:leading-9">
+                TokenBoomAi turns model access into a bright, fast token marketplace: top up credits, pick routes, and call every model through one explosive API base URL.
               </p>
-              <p data-home-reveal="hero" className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
-                {siteName} brings model discovery, developer credentials, usage visibility, and SDK-compatible requests into one business-grade control plane.
+              <p data-home-reveal="hero" className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
+                {siteName} keeps token spend, API keys, model discovery, and SDK-compatible requests in one high-energy control plane.
               </p>
 
               <div data-home-reveal="hero" className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
@@ -305,14 +306,14 @@ export default function SaasHome() {
                   className="coss-button-primary w-full px-5 py-3 sm:w-auto"
                 >
                   <KeyRound size={17} />
-                  Start building / Get API key
+                  Ignite API key
                 </Link>
                 <Link
                   to="/models"
                   className="coss-button-secondary w-full px-5 py-3 sm:w-auto"
                 >
                   <Boxes size={17} />
-                  Explore models
+                  Browse token routes
                 </Link>
                 <Link
                   to={`/playground?model=${encodeURIComponent(defaultModelId)}`}
@@ -325,8 +326,8 @@ export default function SaasHome() {
 
               <div data-home-reveal="hero" className="mt-6 flex flex-wrap items-center gap-2">
                 <TrustBadge label="OpenAI-compatible" />
-                <TrustBadge label="Official USD pricing" />
-                <TrustBadge label="Usage visibility" />
+                <TrustBadge label="Token pricing board" />
+                <TrustBadge label="Usage telemetry" />
                 <TrustBadge label={`Base URL: ${baseUrl}`} wide />
               </div>
             </div>
@@ -346,18 +347,18 @@ export default function SaasHome() {
 
       <CossSection className="pt-7" data-home-reveal="section">
         <div className="grid gap-4 md:grid-cols-3">
-          <EndpointCard title="API base URL" value={baseUrl} icon={Server} copyText={baseUrl} />
+          <EndpointCard title="TokenBoom API base" value={baseUrl} icon={Server} copyText={baseUrl} />
           <EndpointCard title="Chat completions" value={`${baseUrl}/chat/completions`} icon={TerminalSquare} copyText={`${baseUrl}/chat/completions`} />
-          <EndpointCard title="Model marketplace" value="/models" icon={Boxes} link="/models" />
+          <EndpointCard title="Token route board" value="/models" icon={Boxes} link="/models" />
         </div>
       </CossSection>
 
       <CossSection data-home-reveal="section">
         <SectionHeader
-          eyebrow="Model marketplace"
-          title="Choose production models with price and capability context."
-          text="Every public card keeps the decision surface focused on model id, availability, use case, official pricing, and a direct Playground path."
-          action={{ to: '/models', label: 'View model catalog' }}
+          eyebrow="Token route board"
+          title="Choose model routes with price, speed, and capability context."
+          text="Every public card keeps the decision surface focused on model id, availability, use case, token cost, and a direct Playground path."
+          action={{ to: '/models', label: 'View route board' }}
         />
 
         <div className="mb-5">
@@ -387,8 +388,8 @@ export default function SaasHome() {
       <CossSection data-home-reveal="section">
         <SectionHeader
           eyebrow="Platform primitives"
-          title="Everything a production LLM team expects before launch."
-          text="The public surface connects model discovery, official prices, API keys, usage context, and SDK-friendly requests without exposing internal operating details."
+          title="Everything needed to turn token credits into production AI calls."
+          text="The public surface connects route discovery, token prices, API keys, usage context, and SDK-friendly requests without exposing internal operating details."
         />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {valueCards.map((card) => (
@@ -400,12 +401,12 @@ export default function SaasHome() {
       <CossSection data-home-reveal="section">
         <div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div>
-            <p className="text-sm font-semibold text-slate-700">Catalog families</p>
+            <p className="text-sm font-semibold text-slate-700">Boom lanes</p>
             <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
-              Model families grouped by public capability.
+              Token routes grouped by public capability.
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              These groups are generated from the same public model data used by pricing, keys, and catalog pages.
+              These groups are generated from the same public model data used by pricing, keys, and route pages.
             </p>
             <Link to="/models" className="coss-button-primary mt-7">
               Browse models <ArrowRight size={16} />
@@ -462,9 +463,9 @@ export default function SaasHome() {
       {enabledPackages.length > 0 && (
         <CossSection data-home-reveal="section">
           <SectionHeader
-            eyebrow="Enterprise access"
-            title="Plans connect credits, billing, and API access."
-            text="Public package cards stay focused on plan value while billing, activation, and account controls continue through the existing platform flow."
+            eyebrow="Token packs"
+            title="Plans connect token credits, billing, and API access."
+            text="Public package cards stay focused on token firepower while billing, activation, and account controls continue through the existing platform flow."
             action={{ to: '/packages', label: 'View packages' }}
           />
           <div className="grid gap-4 lg:grid-cols-3">
@@ -495,20 +496,28 @@ function HomeMotionStyles() {
       }
       .saas-home-ambient {
         background:
-          linear-gradient(115deg, rgba(8, 145, 178, 0.14) 0%, rgba(255, 255, 255, 0) 35%),
-          linear-gradient(235deg, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 0) 34%),
-          linear-gradient(180deg, #ffffff 0%, #f8fafc 66%, #eef6f8 100%);
+          radial-gradient(circle at 20% 12%, rgba(34, 211, 238, 0.34), transparent 32%),
+          radial-gradient(circle at 76% 20%, rgba(236, 72, 153, 0.34), transparent 30%),
+          radial-gradient(circle at 52% 66%, rgba(190, 242, 100, 0.18), transparent 28%),
+          linear-gradient(135deg, #0b061f 0%, #15103a 44%, #061b31 100%);
       }
       .saas-home-hero-grid {
         background-image:
-          linear-gradient(rgba(15, 23, 42, 0.055) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(15, 23, 42, 0.055) 1px, transparent 1px);
-        background-size: 44px 44px;
+          linear-gradient(rgba(34, 211, 238, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(236, 72, 153, 0.1) 1px, transparent 1px);
+        background-size: 46px 46px;
         mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.18));
+      }
+      .saas-home-burst {
+        background:
+          conic-gradient(from 190deg, rgba(34,211,238,0), rgba(34,211,238,0.14), rgba(236,72,153,0.16), rgba(190,242,100,0.12), rgba(34,211,238,0));
+        filter: blur(10px);
+        opacity: 0.9;
+        animation: tokenboom-hero-spin 13s linear infinite;
       }
       .saas-home-noise {
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
-        mix-blend-mode: multiply;
+        mix-blend-mode: screen;
       }
       .saas-home-flow {
         position: relative;
@@ -518,11 +527,11 @@ function HomeMotionStyles() {
         content: "";
         position: absolute;
         inset: 0;
-        background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.34), transparent);
+        background: linear-gradient(90deg, transparent, rgba(190, 242, 100, 0.72), rgba(34, 211, 238, 0.55), transparent);
         animation: saas-home-flow 3.2s ease-in-out infinite;
       }
       .saas-home-control-line {
-        background: linear-gradient(90deg, rgba(34, 211, 238, 0.18), rgba(16, 185, 129, 0.22), rgba(148, 163, 184, 0.08));
+        background: linear-gradient(90deg, rgba(34, 211, 238, 0.42), rgba(236, 72, 153, 0.44), rgba(190, 242, 100, 0.34));
       }
       .saas-home-shimmer {
         position: relative;
@@ -538,9 +547,13 @@ function HomeMotionStyles() {
       }
       @media (prefers-reduced-motion: reduce) {
         .saas-home-flow::after,
-        .saas-home-shimmer::after {
+        .saas-home-shimmer::after,
+        .saas-home-burst {
           animation: none !important;
         }
+      }
+      @keyframes tokenboom-hero-spin {
+        to { transform: translateX(-50%) rotate(360deg); }
       }
     `}</style>
   );
@@ -548,8 +561,8 @@ function HomeMotionStyles() {
 
 function TrustBadge({ label, wide = false }) {
   return (
-    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm ${wide ? 'break-all' : ''}`}>
-      <CheckCircle2 size={14} className="shrink-0 text-emerald-600" />
+    <span className={`inline-flex max-w-full items-center gap-2 rounded-full border border-cyan-300/24 bg-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-50 shadow-sm shadow-cyan-950/20 backdrop-blur ${wide ? 'break-all' : ''}`}>
+      <CheckCircle2 size={14} className="shrink-0 text-lime-300" />
       <span className={wide ? 'break-all' : ''}>{label}</span>
     </span>
   );
@@ -561,7 +574,7 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
 
   return (
     <div className="relative min-w-0">
-      <div className="relative rounded-xl border border-slate-900 bg-slate-950 p-3 shadow-[0_24px_80px_rgba(15,23,42,0.18)] sm:p-4">
+      <div className="relative rounded-xl border border-cyan-300/25 bg-[#09051d] p-3 shadow-[0_24px_90px_rgba(8,145,178,0.26)] sm:p-4">
         <div className="saas-home-control-line pointer-events-none absolute inset-x-0 top-0 h-px" />
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-1 pb-3">
           <div className="flex items-center gap-2">
@@ -571,14 +584,14 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs font-semibold text-emerald-100">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-            Production ready
+            Boom ready
           </span>
         </div>
 
-        <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+        <div className="mt-4 rounded-lg border border-cyan-300/20 bg-white/[0.06] p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-slate-400">OpenAI-compatible request</p>
+              <p className="text-xs font-medium text-cyan-100/70">TokenBoom request</p>
               <p className="mt-1 break-all font-mono text-sm font-semibold text-white">{baseUrl}/chat/completions</p>
             </div>
             <CopyButton
@@ -587,9 +600,9 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
               className="h-9 w-9 shrink-0 border-white/10 bg-white/10 px-0 py-0 text-slate-100 hover:bg-white/15 hover:text-white"
             />
           </div>
-          <div className="grid gap-2 rounded-lg border border-white/10 bg-slate-900/90 p-3 font-mono text-xs text-slate-200">
+          <div className="grid gap-2 rounded-lg border border-white/10 bg-[#120b2f]/95 p-3 font-mono text-xs text-slate-200">
             <div className="flex min-w-0 items-center gap-2">
-              <span className="rounded-md bg-cyan-300/10 px-2 py-1 text-cyan-100">POST</span>
+              <span className="rounded-md bg-lime-300/15 px-2 py-1 text-lime-100">POST</span>
               <span className="min-w-0 truncate">/chat/completions</span>
             </div>
             <div className="grid gap-1 text-slate-400 sm:grid-cols-[auto_1fr]">
@@ -607,11 +620,11 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
           <GatewaySignal icon={Zap} label="Access" value="Keys" tone="amber" />
         </div>
 
-        <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+        <div className="mt-4 rounded-lg border border-fuchsia-300/20 bg-white/[0.05] p-3">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-400">Model selector</p>
-              <p className="mt-1 text-sm font-semibold text-white">Public catalog choices</p>
+              <p className="text-xs font-medium text-fuchsia-100/70">Route selector</p>
+              <p className="mt-1 text-sm font-semibold text-white">Public token choices</p>
             </div>
             <Layers3 size={18} className="text-cyan-200" />
           </div>
@@ -622,7 +635,7 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
                   <p className="truncate text-sm font-semibold text-white">{getModelDisplayName(model)}</p>
                   <p className="mt-1 truncate font-mono text-xs text-slate-400">{getModelId(model)}</p>
                 </div>
-                <span className="rounded-md bg-white/5 px-2 py-1 font-mono text-xs text-cyan-100">0{index + 1}</span>
+                <span className="rounded-md bg-lime-300/10 px-2 py-1 font-mono text-xs text-lime-100">0{index + 1}</span>
               </div>
             ))}
           </div>
@@ -631,7 +644,7 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
         <div className="mt-4 grid grid-cols-[auto_1fr_auto_1fr_auto] items-center gap-2 text-xs text-slate-300">
           <FlowNode label="Key" icon={KeyRound} />
           <FlowLine />
-          <FlowNode label="Model" icon={Cpu} />
+          <FlowNode label="Route" icon={Cpu} />
           <FlowLine />
           <FlowNode label="Output" icon={CheckCircle2} />
         </div>
@@ -661,7 +674,7 @@ function GatewaySignal({ icon: Icon, label, value, tone = 'cyan' }) {
 function FlowNode({ label, icon: Icon }) {
   return (
     <div className="inline-flex min-w-0 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-2.5 py-2">
-      <Icon size={14} className="shrink-0 text-cyan-200" />
+      <Icon size={14} className="shrink-0 text-lime-200" />
       <span className="truncate">{label}</span>
     </div>
   );

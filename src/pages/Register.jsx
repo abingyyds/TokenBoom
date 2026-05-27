@@ -61,7 +61,7 @@ export default function Register() {
     setLoading(false);
   };
 
-  const siteName = site?.name || 'SubRouter';
+  const siteName = site?.name || 'TokenBoomAi';
   const steps = [
     { icon: KeyRound, title: 'Create access', text: 'Set up an account and keep the existing auth flow unchanged.' },
     { icon: Boxes, title: 'Pick a model', text: 'Use the public catalog to find a stable model id.' },

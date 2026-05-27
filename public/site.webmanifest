@@ -1,6 +1,6 @@
 {
-  "name": "SASSAI",
-  "short_name": "SASSAI",
+  "name": "TokenBoomAi",
+  "short_name": "TokenBoomAi",
   "icons": [
     {
       "src": "/logo-192.png",
@@ -13,7 +13,7 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#0f172a",
-  "background_color": "#ffffff",
+  "theme_color": "#0b061f",
+  "background_color": "#0b061f",
   "display": "standalone"
 }

@@ -249,7 +249,7 @@
     "config.apiUrlTitle": "API Endpoints",
     "config.apiUrlHint": "After creating an API key, connect through the API base URL shown here. {{invalidBaseUrl}} alone is invalid for API calls.",
     "config.selectApiEndpoint": "API endpoint",
-    "config.apiEndpointOfficialName": "SubRouter API",
+    "config.apiEndpointOfficialName": "TokenBoomAi API",
     "config.apiEndpointOfficialDesc": "API base URL",
     "config.apiEndpointOverseasDirectName": "Overseas direct",
     "config.apiEndpointOverseasDirectDesc": "No CDN, API calls only",
