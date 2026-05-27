@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT || process.env.SITE_SAAS_PORT || 8787);
 const storePath = process.env.SITE_SAAS_STORE || path.join(rootDir, 'data', 'site-saas-store.json');
+const activatingOrders = new Set();
 
 const defaultStore = {
   config: {
@@ -421,6 +422,13 @@ function productIdFromPackage(body, mapping) {
   ).trim();
 }
 
+function stringId(value) {
+  if (value && typeof value === 'object') {
+    return String(value.id || value.checkout_id || value.order_id || value.product_id || '').trim();
+  }
+  return String(value || '').trim();
+}
+
 function checkoutPayload({ order, productId, returnUrl }) {
   return {
     product_id: productId,
@@ -433,6 +441,23 @@ function checkoutPayload({ order, productId, returnUrl }) {
       subrouter_user_id: order.user_id,
     },
   };
+}
+
+function checkoutReturnUrl(rawReturnUrl, order, req) {
+  const fallback = `${req.headers.origin || ''}/packages?checkout_status=success`;
+  const value = rawReturnUrl || fallback;
+  try {
+    const parsed = new URL(value, `http://${req.headers.host || 'localhost'}`);
+    if (!parsed.searchParams.get('checkout_status') && !parsed.searchParams.get('status') && !parsed.searchParams.get('payment')) {
+      parsed.searchParams.set('checkout_status', 'success');
+    }
+    parsed.searchParams.set('order_id', order.id);
+    parsed.searchParams.set('request_id', order.id);
+    return parsed.toString();
+  } catch {
+    const separator = String(value).includes('?') ? '&' : '?';
+    return `${value}${separator}checkout_status=success&order_id=${encodeURIComponent(order.id)}&request_id=${encodeURIComponent(order.id)}`;
+  }
 }
 
 async function createCreemCheckout(store, { order, productId, returnUrl }) {
@@ -470,6 +495,55 @@ async function createCreemCheckout(store, { order, productId, returnUrl }) {
   return { raw: json, checkout_url: checkoutUrl, checkout_id: data.id || data.checkout_id || '' };
 }
 
+async function retrieveCreemCheckout(store, checkoutId) {
+  const cleanCheckoutId = String(checkoutId || '').trim();
+  if (!cleanCheckoutId) return null;
+  const config = getConfig(store);
+  const creemApiKey = requireHeaderSafeSecret(
+    'Creem API key',
+    config.creem_api_key,
+    config._sources?.creem_api_key || 'configuration',
+  );
+  const url = new URL(config.creem_checkout_path, config.creem_api_base_url);
+  url.searchParams.set('checkout_id', cleanCheckoutId);
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: {
+      'x-api-key': creemApiKey,
+    },
+  });
+
+  const text = await response.text();
+  let json = {};
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    json = { raw: text };
+  }
+  if (!response.ok) {
+    const message = json.message || json.error || json.raw || response.statusText || 'unknown error';
+    throw new Error(`Creem checkout lookup failed with HTTP ${response.status}: ${String(message).slice(0, 300)}`);
+  }
+  return json.data || json;
+}
+
+function verifyCreemRedirectSignature(params, apiKey) {
+  const signature = String(params.signature || '').trim();
+  if (!signature) return false;
+  const signedKeys = ['checkout_id', 'order_id', 'customer_id', 'subscription_id', 'product_id', 'request_id'];
+  const payload = signedKeys
+    .map((key) => [key, String(params[key] || '').trim()])
+    .filter(([, value]) => value)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('&');
+  if (!payload) return false;
+  const expected = crypto.createHmac('sha256', apiKey).update(payload).digest('hex');
+  const a = Buffer.from(signature);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 function verifyWebhook(rawBody, req, secret) {
   if (!secret) return true;
   const header = String(
@@ -493,42 +567,240 @@ function verifyWebhook(rawBody, req, secret) {
 }
 
 function getMetadata(event) {
-  return event.metadata ||
-    event.data?.metadata ||
-    event.object?.metadata ||
-    event.checkout?.metadata ||
-    event.data?.object?.metadata ||
-    {};
+  return {
+    ...(event.metadata || {}),
+    ...(event.data?.metadata || {}),
+    ...(event.object?.metadata || {}),
+    ...(event.data?.object?.metadata || {}),
+    ...(event.order?.metadata || {}),
+    ...(event.data?.order?.metadata || {}),
+    ...(event.data?.object?.order?.metadata || {}),
+    ...(event.checkout?.metadata || {}),
+    ...(event.data?.checkout?.metadata || {}),
+    ...(event.data?.object?.checkout?.metadata || {}),
+  };
 }
 
 function isPaidEvent(event) {
   const type = String(event.eventType || event.event_type || event.type || '').toLowerCase();
-  const status = String(event.status || event.data?.status || event.object?.status || event.data?.object?.status || '').toLowerCase();
+  const object = event.data?.object || event.object || {};
+  const order = event.order || event.data?.order || object.order || {};
+  const checkout = event.checkout || event.data?.checkout || object.checkout || {};
+  const subscription = event.subscription || event.data?.subscription || object.subscription || {};
+  const status = String(
+    event.status ||
+    event.payment_status ||
+    order.status ||
+    order.payment_status ||
+    checkout.status ||
+    checkout.payment_status ||
+    subscription.status ||
+    event.data?.status ||
+    event.data?.payment_status ||
+    object.status ||
+    object.payment_status ||
+    '',
+  ).toLowerCase();
   return type.includes('paid') ||
     type.includes('completed') ||
-    type.includes('checkout') ||
+    type.includes('succeeded') ||
+    type.includes('success') ||
+    type === 'subscription.active' ||
     status === 'paid' ||
     status === 'completed' ||
     status === 'succeeded' ||
+    status === 'active' ||
+    status === 'confirmed' ||
+    status === 'complete' ||
     status === 'success';
 }
 
-function getWebhookOrder(store, event) {
+function webhookOrderCandidates(event) {
   const metadata = getMetadata(event);
-  const orderId = metadata.order_id ||
-    event.request_id ||
-    event.data?.request_id ||
-    event.object?.request_id ||
-    event.data?.object?.request_id;
-  return store.orders.find((order) => order.id === orderId) || null;
+  return [
+    metadata.order_id,
+    event.request_id,
+    event.data?.request_id,
+    event.object?.request_id,
+    event.checkout?.request_id,
+    event.data?.checkout?.request_id,
+    event.data?.object?.request_id,
+    event.data?.object?.checkout?.request_id,
+    event.order?.request_id,
+    event.data?.order?.request_id,
+    event.data?.object?.order?.request_id,
+    event.checkout_id,
+    event.data?.checkout_id,
+    event.object?.checkout_id,
+    event.data?.object?.checkout_id,
+    event.checkout?.id,
+    event.data?.checkout?.id,
+    event.data?.object?.checkout?.id,
+    event.data?.object?.id,
+  ].filter(Boolean).map((value) => String(value));
+}
+
+function getWebhookOrder(store, event) {
+  const candidates = webhookOrderCandidates(event);
+  return store.orders.find((order) => (
+    candidates.includes(order.id) ||
+    (order.checkout_id && candidates.includes(String(order.checkout_id)))
+  )) || null;
+}
+
+function orderActivationEvent(order) {
+  return {
+    type: 'checkout_return_sync',
+    request_id: order.id,
+    checkout_id: order.checkout_id,
+    status: 'completed',
+    metadata: {
+      order_id: order.id,
+      package_id: order.package_id,
+      subrouter_user_id: order.user_id,
+    },
+  };
+}
+
+function findSyncOrder(store, { orderId, checkoutId, requestId, userId }) {
+  const candidates = [orderId, requestId, checkoutId].filter(Boolean).map(String);
+  if (candidates.length) {
+    const exact = store.orders.find((order) => (
+      (!userId || String(order.user_id) === String(userId)) &&
+      (
+        candidates.includes(String(order.id)) ||
+        (order.checkout_id && candidates.includes(String(order.checkout_id)))
+      )
+    ));
+    if (exact) return exact;
+  }
+
+  return store.orders
+    .filter((order) => (
+      (!userId || String(order.user_id) === String(userId)) &&
+      ['pending', 'checkout_created', 'needs_code'].includes(String(order.status || '').toLowerCase())
+    ))
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0] || null;
+}
+
+async function syncCheckoutActivation(store, { userId, orderId, checkoutId, requestId, params = {}, requirePaid = true, source = 'checkout_return' }) {
+  const order = findSyncOrder(store, { orderId, checkoutId, requestId, userId });
+  if (!order) {
+    pushEvent(store, 'checkout_sync_order_missing', { user_id: userId, order_id: orderId || '', checkout_id: checkoutId || '', request_id: requestId || '', source });
+    return { status: 'not_found', message: 'No matching checkout order found' };
+  }
+
+  if (String(order.status || '').toLowerCase() === 'activated') {
+    return { status: 'activated', success: true, order_id: order.id, already_activated: true };
+  }
+
+  const config = getConfig(store);
+  const cleanCheckoutId = checkoutId || order.checkout_id || '';
+  const cleanRequestId = requestId || order.id;
+  let paymentConfirmed = false;
+  let confirmationSource = '';
+  let checkout = null;
+
+  const creemApiKey = String(config.creem_api_key || '').trim();
+  if (creemApiKey && verifyCreemRedirectSignature({ ...params, checkout_id: cleanCheckoutId, request_id: cleanRequestId }, creemApiKey)) {
+    paymentConfirmed = true;
+    confirmationSource = 'redirect_signature';
+  }
+
+  if (!paymentConfirmed && cleanCheckoutId) {
+    checkout = await retrieveCreemCheckout(store, cleanCheckoutId);
+    if (checkout && isPaidEvent({ ...checkout, checkout })) {
+      paymentConfirmed = true;
+      confirmationSource = 'checkout_lookup';
+    }
+  }
+
+  if (!paymentConfirmed && !requirePaid) {
+    paymentConfirmed = true;
+    confirmationSource = 'trusted_event';
+  }
+
+  if (!paymentConfirmed) {
+    pushEvent(store, 'checkout_sync_pending', { order_id: order.id, checkout_id: cleanCheckoutId, user_id: userId, source });
+    return {
+      status: 'pending',
+      order_id: order.id,
+      message: 'Payment is not confirmed yet',
+    };
+  }
+
+  if (cleanCheckoutId && !order.checkout_id) order.checkout_id = cleanCheckoutId;
+  order.payment_confirmed_at = order.payment_confirmed_at || now();
+  order.payment_confirmation_source = confirmationSource;
+  order.updated_at = now();
+
+  const event = checkout
+    ? {
+      ...checkout,
+      type: source,
+      checkout_id: cleanCheckoutId,
+      request_id: cleanRequestId,
+      metadata: {
+        ...getMetadata(checkout),
+        order_id: order.id,
+        package_id: order.package_id,
+        subrouter_user_id: order.user_id,
+      },
+    }
+    : orderActivationEvent(order);
+  const result = await activateSubscriptionCycle(store, { order, event });
+  pushEvent(store, 'checkout_sync_processed', {
+    order_id: order.id,
+    checkout_id: cleanCheckoutId,
+    user_id: userId,
+    source,
+    confirmation_source: confirmationSource,
+    success: result.success,
+    message: result.message || '',
+  });
+
+  return {
+    ...result,
+    status: result.success ? 'activated' : (result.pending ? 'pending' : order.status || 'failed'),
+    order_id: order.id,
+    checkout_id: cleanCheckoutId,
+  };
+}
+
+async function syncPendingPaidCheckouts(store, userId) {
+  const candidates = store.orders
+    .filter((order) => (
+      String(order.user_id) === String(userId) &&
+      String(order.checkout_id || '').trim() &&
+      ['pending', 'checkout_created', 'needs_code'].includes(String(order.status || '').toLowerCase())
+    ))
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+    .slice(0, 3);
+
+  for (const order of candidates) {
+    const result = await syncCheckoutActivation(store, {
+      userId,
+      orderId: order.id,
+      checkoutId: order.checkout_id,
+      requestId: order.id,
+      params: {},
+      requirePaid: true,
+      source: 'checkout_background_sync',
+    });
+    if (result.success) return result;
+  }
+
+  return { status: 'pending', message: 'No paid checkout is ready to activate' };
 }
 
 function getSubscriptionId(event, order) {
+  const subscription = stringId(event.subscription || event.object?.subscription || event.data?.subscription || event.data?.object?.subscription);
   return String(
     event.subscription_id ||
     event.data?.subscription_id ||
     event.object?.subscription_id ||
     event.data?.object?.subscription_id ||
+    subscription ||
     order?.checkout_id ||
     order?.id ||
     '',
@@ -543,6 +815,12 @@ function periodEndFromEvent(event) {
     event.period_end ||
     event.data?.period_end;
   if (value) return value;
+  const subscription = event.subscription || event.data?.subscription || event.object?.subscription || event.data?.object?.subscription || {};
+  const subscriptionPeriodEnd = subscription.current_period_end_date ||
+    subscription.current_period_end ||
+    subscription.period_end ||
+    subscription.next_renewal_time;
+  if (subscriptionPeriodEnd) return subscriptionPeriodEnd;
   return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 }
 
@@ -587,87 +865,107 @@ async function subscribeSubRouterPackage(store, { userId, packageId }) {
 }
 
 async function activateSubscriptionCycle(store, { order, event }) {
-  const metadata = getMetadata(event);
-  const packageId = metadata.package_id || order.package_id;
-  const userId = metadata.subrouter_user_id || order.user_id;
-  const subscriptionId = getSubscriptionId(event, order) || `${userId}:${packageId}`;
-
-  const code = store.codes.find((item) => item.package_id === packageId && item.status === 'available');
-  if (!code) {
-    pushEvent(store, 'code_pool_empty', { package_id: packageId, user_id: userId, order_id: order.id });
-    upsertSubscription(store, {
-      user_id: userId,
-      package_id: packageId,
-      subscription_id: subscriptionId,
-      status: 'needs_code',
-      order_id: order.id,
-    });
-    return { success: false, message: 'No available internal code for package' };
+  if (!order) return { success: false, message: 'Order not found' };
+  if (String(order.status || '').toLowerCase() === 'activated') {
+    return { success: true, already_activated: true };
   }
+  if (activatingOrders.has(order.id)) {
+    return { success: false, pending: true, message: 'Order activation is already in progress' };
+  }
+  activatingOrders.add(order.id);
+  try {
+    const metadata = getMetadata(event);
+    const packageId = metadata.package_id || order.package_id;
+    const userId = metadata.subrouter_user_id || order.user_id;
+    const subscriptionId = getSubscriptionId(event, order) || `${userId}:${packageId}`;
 
-  code.status = 'reserved';
-  code.assigned_to = userId;
-  code.subscription_id = subscriptionId;
-  code.reserved_at = now();
-
-  const redeemResult = await redeemSubRouterCode(store, { userId, code: code.code });
-  if (redeemResult.success) {
-    code.status = 'balance_redeemed';
-    code.redeemed_at = now();
-    pushEvent(store, 'balance_code_redeemed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id });
-
-    const subscribeResult = await subscribeSubRouterPackage(store, { userId, packageId });
-    if (!subscribeResult.success) {
-      code.status = 'subscribe_failed';
-      code.subscribe_error = subscribeResult.data?.message || subscribeResult.data?.error || `HTTP ${subscribeResult.status}`;
+    const code = store.codes.find((item) => item.package_id === packageId && item.status === 'available');
+    if (!code) {
+      pushEvent(store, 'code_pool_empty', { package_id: packageId, user_id: userId, order_id: order.id });
+      order.status = 'needs_code';
+      order.error = 'No available internal code for package';
+      order.updated_at = now();
       upsertSubscription(store, {
         user_id: userId,
         package_id: packageId,
         subscription_id: subscriptionId,
-        status: 'package_subscribe_failed',
+        status: 'needs_code',
+        order_id: order.id,
+      });
+      return { success: false, message: 'No available internal code for package' };
+    }
+
+    code.status = 'reserved';
+    code.assigned_to = userId;
+    code.subscription_id = subscriptionId;
+    code.reserved_at = now();
+
+    const redeemResult = await redeemSubRouterCode(store, { userId, code: code.code });
+    if (redeemResult.success) {
+      code.status = 'balance_redeemed';
+      code.redeemed_at = now();
+      pushEvent(store, 'balance_code_redeemed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id });
+
+      const subscribeResult = await subscribeSubRouterPackage(store, { userId, packageId });
+      if (!subscribeResult.success) {
+        code.status = 'subscribe_failed';
+        code.subscribe_error = subscribeResult.data?.message || subscribeResult.data?.error || `HTTP ${subscribeResult.status}`;
+        upsertSubscription(store, {
+          user_id: userId,
+          package_id: packageId,
+          subscription_id: subscriptionId,
+          status: 'package_subscribe_failed',
+          order_id: order.id,
+          last_code_id: code.id,
+          current_period_end: periodEndFromEvent(event),
+          next_renewal_time: periodEndFromEvent(event),
+        });
+        order.status = 'package_subscribe_failed';
+        order.error = code.subscribe_error;
+        order.updated_at = now();
+        pushEvent(store, 'package_subscribe_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: code.subscribe_error });
+        return { success: false, message: code.subscribe_error, balance_redeemed: true };
+      }
+
+      code.status = 'subscribed';
+      code.subscribed_at = now();
+      upsertSubscription(store, {
+        user_id: userId,
+        package_id: packageId,
+        subscription_id: subscriptionId,
+        status: 'active',
         order_id: order.id,
         last_code_id: code.id,
         current_period_end: periodEndFromEvent(event),
         next_renewal_time: periodEndFromEvent(event),
       });
-      order.status = 'package_subscribe_failed';
-      order.error = code.subscribe_error;
-      pushEvent(store, 'package_subscribe_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: code.subscribe_error });
-      return { success: false, message: code.subscribe_error, balance_redeemed: true };
+      order.status = 'activated';
+      order.error = '';
+      order.updated_at = now();
+      pushEvent(store, 'package_subscribed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id });
+      return { success: true };
     }
 
-    code.status = 'subscribed';
-    code.subscribed_at = now();
+    code.status = 'redeem_failed';
+    code.redeem_error = redeemResult.data?.message || redeemResult.data?.error || `HTTP ${redeemResult.status}`;
     upsertSubscription(store, {
       user_id: userId,
       package_id: packageId,
       subscription_id: subscriptionId,
-      status: 'active',
+      status: 'redeem_failed',
       order_id: order.id,
       last_code_id: code.id,
       current_period_end: periodEndFromEvent(event),
       next_renewal_time: periodEndFromEvent(event),
     });
-    order.status = 'activated';
-    pushEvent(store, 'package_subscribed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id });
-    return { success: true };
+    order.status = 'redeem_failed';
+    order.error = code.redeem_error;
+    order.updated_at = now();
+    pushEvent(store, 'redeem_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: code.redeem_error });
+    return { success: false, message: code.redeem_error };
+  } finally {
+    activatingOrders.delete(order.id);
   }
-
-  code.status = 'redeem_failed';
-  code.redeem_error = redeemResult.data?.message || redeemResult.data?.error || `HTTP ${redeemResult.status}`;
-  upsertSubscription(store, {
-    user_id: userId,
-    package_id: packageId,
-    subscription_id: subscriptionId,
-    status: 'redeem_failed',
-    order_id: order.id,
-    last_code_id: code.id,
-    current_period_end: periodEndFromEvent(event),
-    next_renewal_time: periodEndFromEvent(event),
-  });
-  order.status = 'redeem_failed';
-  pushEvent(store, 'redeem_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: code.redeem_error });
-  return { success: false, message: code.redeem_error };
 }
 
 function upsertSubscription(store, input) {
@@ -686,6 +984,10 @@ function upsertSubscription(store, input) {
     next_renewal_time: input.next_renewal_time || sub.next_renewal_time || null,
   });
   return sub;
+}
+
+function orderCanBeManuallyActivated(order) {
+  return order && !['activated'].includes(String(order.status || '').toLowerCase());
 }
 
 export async function handleSiteSaasRequest(req, res) {
@@ -811,11 +1113,65 @@ export async function handleSiteSaasRequest(req, res) {
       return sendJson(res, 200, { success: true, data: { imported, state: publicState(store) } });
     }
 
+    if (url.pathname === '/api/site/admin/saas/orders/activate' && req.method === 'POST') {
+      if (!requireAdmin(req)) return sendJson(res, 401, { success: false, message: 'Invalid site admin token' });
+      const orderId = String(body.order_id || '').trim();
+      if (!orderId) return sendJson(res, 400, { success: false, message: 'order_id is required' });
+      const order = store.orders.find((item) => item.id === orderId);
+      if (!order) return sendJson(res, 404, { success: false, message: 'Order not found' });
+      if (!orderCanBeManuallyActivated(order)) {
+        return sendJson(res, 400, { success: false, message: `Order ${orderId} is already activated` });
+      }
+
+      const result = await activateSubscriptionCycle(store, {
+        order,
+        event: {
+          type: 'manual_activation',
+          metadata: {
+            order_id: order.id,
+            package_id: order.package_id,
+            subrouter_user_id: order.user_id,
+          },
+        },
+      });
+      pushEvent(store, 'manual_activation_processed', { order_id: order.id, package_id: order.package_id, success: result.success, message: result.message || '' });
+      await saveStore(store);
+      return sendJson(res, result.success ? 200 : 202, { success: result.success, data: result, state: publicState(store) });
+    }
+
     if (url.pathname === '/api/site/saas/subscriptions' && req.method === 'GET') {
       const userId = userIdFromRequest(req);
       if (!userId) return sendJson(res, 401, { success: false, message: 'Missing SubRouter user id' });
       const subscriptions = store.subscriptions.filter((item) => String(item.user_id) === userId);
       return sendJson(res, 200, { success: true, data: subscriptions });
+    }
+
+    if (url.pathname === '/api/site/saas/checkout/sync' && req.method === 'POST') {
+      const userId = userIdFromRequest(req);
+      if (!userId) return sendJson(res, 401, { success: false, message: 'Missing SubRouter user id' });
+      const params = body.params && typeof body.params === 'object' ? body.params : body;
+      const checkoutId = String(body.checkout_id || params.checkout_id || url.searchParams.get('checkout_id') || '').trim();
+      const orderId = String(body.order_id || params.order_id || url.searchParams.get('order_id') || '').trim();
+      const requestId = String(body.request_id || params.request_id || url.searchParams.get('request_id') || '').trim();
+      try {
+        const result = orderId || checkoutId || requestId
+          ? await syncCheckoutActivation(store, {
+            userId,
+            orderId,
+            checkoutId,
+            requestId,
+            params,
+            requirePaid: true,
+            source: 'checkout_return_sync',
+          })
+          : await syncPendingPaidCheckouts(store, userId);
+        await saveStore(store);
+        return sendJson(res, result.success ? 200 : 202, { success: Boolean(result.success), data: result, message: result.message });
+      } catch (error) {
+        pushEvent(store, 'checkout_sync_failed', { user_id: userId, order_id: orderId, checkout_id: checkoutId, request_id: requestId, error: error.message });
+        await saveStore(store);
+        return sendJson(res, 202, { success: false, message: error.message, data: { status: 'sync_failed' } });
+      }
     }
 
     if (url.pathname === '/api/site/saas/checkout' && req.method === 'POST') {
@@ -844,7 +1200,7 @@ export async function handleSiteSaasRequest(req, res) {
       store.orders.push(order);
       await saveStore(store);
 
-      const returnUrl = body.return_url || `${req.headers.origin || ''}/packages?checkout_status=success`;
+      const returnUrl = checkoutReturnUrl(body.return_url, order, req);
       try {
         const checkout = await createCreemCheckout(store, {
           order,
@@ -871,6 +1227,16 @@ export async function handleSiteSaasRequest(req, res) {
     if (url.pathname === '/api/site/saas/webhooks/creem' && req.method === 'POST') {
       const config = getConfig(store);
       if (!verifyWebhook(raw, req, config.creem_webhook_secret)) {
+        pushEvent(store, 'webhook_signature_failed', {
+          type: body.type || body.eventType || body.event_type,
+          headers: {
+            creem_signature: Boolean(req.headers['creem-signature']),
+            x_creem_signature: Boolean(req.headers['x-creem-signature']),
+            webhook_signature: Boolean(req.headers['webhook-signature']),
+            x_signature: Boolean(req.headers['x-signature']),
+          },
+        });
+        await saveStore(store);
         return sendJson(res, 401, { success: false, message: 'Invalid webhook signature' });
       }
       const eventId = body.id || body.event_id || body.data?.id || id('wh');
@@ -882,9 +1248,27 @@ export async function handleSiteSaasRequest(req, res) {
         await saveStore(store);
         return sendJson(res, 200, { success: true, data: { ignored: true } });
       }
-      const order = getWebhookOrder(store, body);
+      let order = getWebhookOrder(store, body);
       if (!order) {
-        pushEvent(store, 'webhook_order_missing', { event_id: eventId });
+        const metadata = getMetadata(body);
+        const orderUserId = metadata.subrouter_user_id || metadata.user_id || body.user_id || body.data?.user_id || '';
+        const checkoutId = String(webhookOrderCandidates(body).find((candidate) => store.orders.some((item) => (
+          String(item.checkout_id) === candidate &&
+          (!orderUserId || String(item.user_id) === String(orderUserId))
+        ))) || '').trim();
+        order = findSyncOrder(store, {
+          orderId: metadata.order_id || '',
+          checkoutId,
+          requestId: body.request_id || body.data?.request_id || body.object?.request_id || '',
+          userId: orderUserId,
+        });
+      }
+      if (!order) {
+        pushEvent(store, 'webhook_order_missing', {
+          event_id: eventId,
+          type: body.type || body.eventType || body.event_type,
+          candidates: webhookOrderCandidates(body),
+        });
         await saveStore(store);
         return sendJson(res, 202, { success: false, message: 'Order not found for webhook metadata' });
       }

@@ -31,6 +31,7 @@ import {
   getSitePackages,
   Q,
   subscribePackage,
+  syncSiteSaasCheckout,
   userRequestConfig,
 } from '../api';
 import { readPublicModelCatalog } from '../utils/publicCatalog';
@@ -68,6 +69,16 @@ function isBalanceError(message = '') {
   return /balance|余额|insufficient|不足|not enough|quota/i.test(String(message));
 }
 
+function checkoutSyncPayload(searchParams) {
+  const params = Object.fromEntries(searchParams.entries());
+  return {
+    order_id: params.order_id || '',
+    checkout_id: params.checkout_id || '',
+    request_id: params.request_id || '',
+    params,
+  };
+}
+
 function BillingStep({ icon: Icon, title, desc }) {
   return (
     <CossCard className="p-5">
@@ -92,6 +103,7 @@ export default function Packages() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
   const [balanceLoading, setBalanceLoading] = useState(null);
+  const [checkoutSyncing, setCheckoutSyncing] = useState(false);
   const [confirmBalancePkg, setConfirmBalancePkg] = useState(null);
   const [insufficientPkg, setInsufficientPkg] = useState(null);
 
@@ -146,7 +158,26 @@ export default function Packages() {
 
     const sync = async () => {
       if (checkoutStatus === 'success' || checkoutStatus === 'return') {
-        toast.success('Checkout completed. Your subscription will activate automatically after payment confirmation.');
+        setCheckoutSyncing(true);
+        const toastId = toast.loading('Confirming payment and activating subscription...');
+        try {
+          const res = await syncSiteSaasCheckout(
+            checkoutSyncPayload(searchParams),
+            userRequestConfig(user, { skipErrorHandler: true }),
+          );
+          const result = res.data?.data || {};
+          if (res.data?.success || result.status === 'activated') {
+            toast.success('Subscription activated.', { id: toastId });
+          } else if (result.status === 'pending') {
+            toast.success('Checkout returned. Activation will retry automatically after payment confirmation.', { id: toastId });
+          } else {
+            toast.error(res.data?.message || result.message || 'Payment confirmed, but activation is still pending.', { id: toastId });
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Payment confirmed, but activation is still pending.', { id: toastId });
+        } finally {
+          setCheckoutSyncing(false);
+        }
       } else if (checkoutStatus === 'cancelled' || checkoutStatus === 'cancel') {
         toast.error('Checkout was cancelled.');
       }
@@ -156,6 +187,25 @@ export default function Packages() {
 
     sync();
   }, [user, searchParams, setSearchParams, refreshUser]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const syncLatest = async () => {
+      try {
+        const res = await syncSiteSaasCheckout({}, userRequestConfig(user, { skipErrorHandler: true }));
+        if (!cancelled && res.data?.data?.status === 'activated') {
+          await Promise.all([refreshUser({ skipErrorHandler: true }), loadSubscriptions()]);
+        }
+      } catch {
+        // A missing or still-unpaid checkout should not interrupt normal package browsing.
+      }
+    };
+    syncLatest();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, refreshUser]);
 
   const enabledPackages = useMemo(
     () => packages.filter((pkg) => pkg.enabled !== false),
@@ -428,7 +478,7 @@ export default function Packages() {
                     <button
                       type="button"
                       onClick={() => handleBalancePurchase(pkg)}
-                      disabled={balanceLoading === pkg.id || checkoutLoading === pkg.id}
+                      disabled={balanceLoading === pkg.id || checkoutLoading === pkg.id || checkoutSyncing}
                       className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                         isFeatured
                           ? 'bg-slate-950 text-white hover:bg-slate-800'
@@ -450,13 +500,13 @@ export default function Packages() {
                     <button
                       type="button"
                       onClick={() => handleSubscribe(pkg)}
-                      disabled={checkoutLoading === pkg.id || balanceLoading === pkg.id}
+                      disabled={checkoutLoading === pkg.id || balanceLoading === pkg.id || checkoutSyncing}
                       className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {checkoutLoading === pkg.id ? (
+                      {checkoutLoading === pkg.id || checkoutSyncing ? (
                         <>
                           <Loader2 className="animate-spin" size={17} />
-                          Creating checkout
+                          {checkoutSyncing ? 'Activating' : 'Creating checkout'}
                         </>
                       ) : (
                         <>

@@ -405,6 +405,8 @@ export const getSiteSaasSubscriptions = (config) =>
   api.get('/api/site/saas/subscriptions', config);
 export const createSiteSaasCheckout = (data, config) =>
   api.post('/api/site/saas/checkout', data, config);
+export const syncSiteSaasCheckout = (data, config) =>
+  api.post('/api/site/saas/checkout/sync', data, config);
 export const getSiteSaasAdminState = (token) =>
   api.get('/api/site/admin/saas/state', {
     skipErrorHandler: true,
@@ -417,6 +419,11 @@ export const updateSiteSaasAdminConfig = (token, data) =>
   });
 export const importSiteSaasCodes = (token, data) =>
   api.post('/api/site/admin/saas/codes/import', data, {
+    skipErrorHandler: true,
+    headers: { 'X-Site-Admin-Token': token },
+  });
+export const activateSiteSaasOrder = (token, orderId) =>
+  api.post('/api/site/admin/saas/orders/activate', { order_id: orderId }, {
     skipErrorHandler: true,
     headers: { 'X-Site-Admin-Token': token },
   });

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Activity, KeyRound, Layers3, Loader2, RefreshCcw, Save, UploadCloud } from 'lucide-react';
 import {
+  activateSiteSaasOrder,
   getSitePackages,
   getSiteSaasAdminState,
   importSiteSaasCodes,
@@ -57,6 +58,7 @@ export default function SaasAdmin() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [activatingOrder, setActivatingOrder] = useState('');
 
   const enabledPackages = useMemo(
     () => packages.filter((pkg) => pkg.enabled !== false),
@@ -185,6 +187,25 @@ export default function SaasAdmin() {
       setPackages((current) => (current.length ? current : fallbackPackagesFromState(res.data.data.state)));
     }
     setImporting(false);
+  };
+
+  const handleActivateOrder = async (orderId) => {
+    const adminToken = token.trim();
+    if (!adminToken && token) setToken(adminToken);
+    setActivatingOrder(orderId);
+    const res = await activateSiteSaasOrder(adminToken, orderId).catch((error) => {
+      toast.error(error.response?.data?.message || 'Failed to activate order');
+      return null;
+    });
+    if (res?.data?.success) {
+      toast.success('Order activated');
+      setState(res.data.state || res.data.data?.state || state);
+      await loadState(adminToken);
+    } else if (res?.data?.data?.message || res?.data?.data) {
+      toast.error(res.data.data?.message || 'Activation needs attention');
+      await loadState(adminToken);
+    }
+    setActivatingOrder('');
   };
 
   return (
@@ -325,6 +346,39 @@ export default function SaasAdmin() {
           </div>
         </ConsoleFrame>
       </div>
+
+      <ConsoleFrame className="mt-6">
+        <ConsoleFrameHeader title="Recent orders" subtitle="Manual activation is available for paid orders when a webhook did not complete the internal redemption flow." />
+        <div className="divide-y divide-page-divider">
+          {(state?.orders || []).length === 0 ? (
+            <p className="p-4 text-sm text-page-muted">No orders yet.</p>
+          ) : (
+            state.orders.slice(0, 8).map((order) => {
+              const canActivate = order.status !== 'activated';
+              return (
+                <div key={order.id} className="grid gap-3 p-4 text-sm lg:grid-cols-[180px_120px_1fr_180px] lg:items-center">
+                  <span className="text-page-muted">{new Date(order.created_at).toLocaleString()}</span>
+                  <span className="font-semibold text-page">{order.status || 'pending'}</span>
+                  <div className="min-w-0">
+                    <p className="break-all font-mono text-xs text-page-secondary">{order.id}</p>
+                    <p className="mt-1 text-xs text-page-muted">Package {order.package_id} · User {order.user_id}</p>
+                    {order.error && <p className="mt-1 break-all text-xs text-page-danger">{order.error}</p>}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleActivateOrder(order.id)}
+                    disabled={!canActivate || activatingOrder === order.id}
+                    className="btn-secondary inline-flex items-center justify-center gap-2 px-3 py-2 text-xs disabled:opacity-50"
+                  >
+                    {activatingOrder === order.id ? <Loader2 size={14} className="animate-spin" /> : <RefreshCcw size={14} />}
+                    Activate
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </ConsoleFrame>
 
       <ConsoleFrame className="mt-6">
         <ConsoleFrameHeader title="Recent backend events" subtitle="Latest SaaS checkout, code redemption, and subscription events." />
