@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="SASSAI logo">
+  <rect width="1024" height="1024" rx="224" fill="#000"/>
+  <path
+    d="M660 284H424C354 284 306 328 306 390C306 452 354 496 424 496H600C670 496 718 540 718 602C718 664 670 708 600 708H364"
+    fill="none"
+    stroke="#fff"
+    stroke-width="112"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M512 496H734"
+    fill="none"
+    stroke="#fff"
+    stroke-width="64"
+    stroke-linecap="round"
+  />
+  <circle cx="512" cy="496" r="54" fill="#000" stroke="#fff" stroke-width="44"/>
+</svg>
