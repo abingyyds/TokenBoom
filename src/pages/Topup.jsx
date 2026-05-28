@@ -65,6 +65,52 @@ function findCompatibleCreemProduct(products, amount) {
   }) || null;
 }
 
+function openPendingPaymentWindow() {
+  if (typeof window === 'undefined') return null;
+  const opened = window.open('', '_blank');
+  if (!opened) return null;
+  try {
+    opened.document.write(`<!doctype html>
+<html>
+  <head>
+    <title>Redirecting to payment</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #020617; color: #f8fafc; }
+      main { max-width: 24rem; padding: 2rem; text-align: center; }
+      p { margin: .5rem 0 0; color: #94a3b8; line-height: 1.5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Opening payment...</h1>
+      <p>Please wait while the checkout page is prepared.</p>
+    </main>
+  </body>
+</html>`);
+    opened.document.close();
+  } catch {
+    // Some mobile browsers restrict access to the placeholder window.
+  }
+  return opened;
+}
+
+function redirectToPayment(url, pendingWindow) {
+  if (pendingWindow && !pendingWindow.closed) {
+    pendingWindow.location.href = url;
+    return;
+  }
+  window.location.assign(url);
+}
+
+function closePendingPaymentWindow(pendingWindow) {
+  try {
+    if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
+  } catch {
+    // Ignore browsers that block closing a pending payment window.
+  }
+}
+
 export default function Topup() {
   const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
@@ -230,6 +276,7 @@ export default function Topup() {
       toast.error(t('topup.creemUnsupportedAmount') || 'Current amount is not supported by Creem');
       return;
     }
+    const pendingPaymentWindow = isGatewayPayment ? openPendingPaymentWindow() : null;
     setPaymentLoading(true);
     setPayingMethod(method);
     try {
@@ -243,19 +290,25 @@ export default function Topup() {
           amount: payAmount,
         });
         if (res.data.message === 'success' && res.data.data?.checkout_url) {
-          window.open(res.data.data.checkout_url, '_blank');
+          redirectToPayment(res.data.data.checkout_url, pendingPaymentWindow);
         } else if (res.data.message !== 'success') {
+          closePendingPaymentWindow(pendingPaymentWindow);
           const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
           toast.error(errMsg || t('common.requestFailed'));
+        } else {
+          closePendingPaymentWindow(pendingPaymentWindow);
         }
       } else if (isStripePayment(method)) {
         // Stripe payment
         const res = await createStripeOrder(data);
         if (res.data.message === 'success' && res.data.data?.pay_link) {
-          window.open(res.data.data.pay_link, '_blank');
+          redirectToPayment(res.data.data.pay_link, pendingPaymentWindow);
         } else if (res.data.message !== 'success') {
+          closePendingPaymentWindow(pendingPaymentWindow);
           const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
           toast.error(errMsg || t('common.requestFailed'));
+        } else {
+          closePendingPaymentWindow(pendingPaymentWindow);
         }
       } else {
         // EPay payment - submit via hidden form (same as main site)
@@ -289,7 +342,9 @@ export default function Topup() {
           toast.error(errMsg || t('common.requestFailed'));
         }
       }
-    } catch (e) { /* interceptor */ }
+    } catch (e) {
+      closePendingPaymentWindow(pendingPaymentWindow);
+    }
     setPaymentLoading(false);
     setPayingMethod('');
   };
