@@ -64,9 +64,6 @@ export default function Topup() {
   const [selectedChain, setSelectedChain] = useState('');
   const [selectedToken, setSelectedToken] = useState('usdt');
 
-  // Creem
-  const [selectedCreemProduct, setSelectedCreemProduct] = useState(null);
-
   // History
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState([]);
@@ -151,7 +148,34 @@ export default function Topup() {
   const isStripePayment = (method) =>
     ['stripe', 'alipay', 'wxpay'].includes(method) && !method.startsWith('epay_');
 
-  // Pay handler for EPay and Stripe methods
+  const getCreemProductId = (product) =>
+    product?.productId || product?.product_id || product?.id || '';
+
+  const parsePaymentNumber = (value) => {
+    if (value === '' || value == null) return NaN;
+    if (typeof value === 'number') return value;
+    const match = String(value).replace(/,/g, '').match(/-?\d+(\.\d+)?/);
+    return match ? Number.parseFloat(match[0]) : NaN;
+  };
+
+  const getCreemProductAmount = (product) => {
+    const candidates = [
+      product?.amount,
+      product?.price,
+      product?.quota ? Number(product.quota) / Q : null,
+    ];
+    return candidates
+      .map((candidate) => parsePaymentNumber(candidate))
+      .find((candidate) => Number.isFinite(candidate) && candidate > 0);
+  };
+
+  const findCreemProductByAmount = (payAmount) =>
+    creemProducts.find((product) => {
+      const productAmount = getCreemProductAmount(product);
+      return Number.isFinite(productAmount) && Math.abs(productAmount - payAmount) < 0.0001;
+    }) || null;
+
+  // Pay handler for EPay, Stripe, and Creem methods
   const handlePay = async (method) => {
     const payAmount = parseInt(amount);
     if (!payAmount || payAmount <= 0) {
@@ -164,7 +188,21 @@ export default function Topup() {
       const returnUrl = window.location.origin + '/topup';
       const data = { amount: payAmount, payment_method: method, return_url: returnUrl };
 
-      if (isStripePayment(method)) {
+      if (method === 'creem') {
+        const matchedProduct = findCreemProductByAmount(payAmount);
+        const productId = getCreemProductId(matchedProduct);
+        const res = await createCreemOrder({
+          ...data,
+          payment_method: 'creem',
+          ...(productId ? { product_id: productId } : {}),
+        });
+        if (res.data.message === 'success' && res.data.data?.checkout_url) {
+          window.open(res.data.data.checkout_url, '_blank');
+        } else if (res.data.message !== 'success') {
+          const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
+          toast.error(errMsg || t('common.requestFailed'));
+        }
+      } else if (isStripePayment(method)) {
         // Stripe payment
         const res = await createStripeOrder(data);
         if (res.data.message === 'success' && res.data.data?.pay_link) {
@@ -204,26 +242,6 @@ export default function Topup() {
           const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
           toast.error(errMsg || t('common.requestFailed'));
         }
-      }
-    } catch (e) { /* interceptor */ }
-    setPaymentLoading(false);
-    setPayingMethod('');
-  };
-
-  // Creem pay - product based
-  const handleCreemPay = async (product) => {
-    setPaymentLoading(true);
-    setPayingMethod('creem');
-    try {
-      const res = await createCreemOrder({
-        product_id: product.productId,
-        payment_method: 'creem',
-      });
-      if (res.data.message === 'success' && res.data.data?.checkout_url) {
-        window.open(res.data.data.checkout_url, '_blank');
-      } else if (res.data.message !== 'success') {
-        const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
-        toast.error(errMsg || t('common.requestFailed'));
       }
     } catch (e) { /* interceptor */ }
     setPaymentLoading(false);
@@ -309,6 +327,7 @@ export default function Topup() {
   const selectedCryptoLabel = selectedChainLabel
     ? `${selectedTokenLabel} (${selectedChainLabel})`
     : selectedTokenLabel;
+  const showCryptoPaymentPanel = enableCrypto && availableChains.length > 0;
 
   // Set default chain when available
   useEffect(() => {
@@ -340,11 +359,22 @@ export default function Topup() {
     setHistoryLoading(false);
   };
 
-  // Filter pay methods: EPay methods + Stripe-based methods go in the main payment buttons
-  // Creem and Crypto get their own sections
+  // Filter pay methods: EPay, Stripe-based methods, and Creem go in the main payment buttons.
+  // Crypto keeps its own section because it needs chain and token selection before checkout.
   const epayAndStripeMethods = payMethods.filter(
     (m) => m.type !== 'creem' && m.type !== 'crypto'
   );
+  const configuredCreemMethod = payMethods.find((m) => m.type === 'creem');
+  const enableCreemButton = Boolean(enableCreem && (configuredCreemMethod || creemProducts.length > 0));
+  const onlinePaymentMethods = [
+    ...epayAndStripeMethods,
+    ...(enableCreemButton
+      ? [{
+        type: 'creem',
+        name: configuredCreemMethod?.name || t('topup.creemPayment') || 'Creem Payment',
+      }]
+      : []),
+  ];
 
   if (loading) {
     return (
@@ -409,13 +439,13 @@ export default function Topup() {
         stats={statCards}
       />
 
-      {site?.enable_topup && (enableOnline || enableStripe || enableCrypto) && (epayAndStripeMethods.length > 0 || enableCrypto) && (
+      {site?.enable_topup && (enableOnline || enableStripe || enableCreem || enableCrypto) && (onlinePaymentMethods.length > 0 || showCryptoPaymentPanel) && (
         <ConsoleSection
           className="mt-6"
           title={t('topup.onlineTopup')}
           subtitle="Choose a payment method, set the amount, and complete checkout."
         >
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]">
+          <div className={`grid gap-6 ${showCryptoPaymentPanel ? 'xl:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]' : ''}`}>
             <div className="space-y-6">
               <div>
                 <label className="mb-3 block text-sm font-medium text-page-label">{t('topup.selectAmount')}</label>
@@ -471,28 +501,30 @@ export default function Topup() {
                 ) : null}
               </div>
 
-              <div>
-                <label className="mb-3 block text-sm font-medium text-page-label">{t('topup.paymentMethod')}</label>
-                <div className="flex flex-wrap gap-2">
-                  {epayAndStripeMethods.map((method) => {
-                    const isCurrentLoading = paymentLoading && payingMethod === method.type;
-                    return (
-                      <button
-                        key={method.type}
-                        onClick={() => handlePay(method.type)}
-                        disabled={paymentLoading || !amount}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-2.5 text-sm font-medium text-page-label transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        {isCurrentLoading ? t('topup.processing') : method.name}
-                      </button>
-                    );
-                  })}
+              {onlinePaymentMethods.length > 0 && (
+                <div>
+                  <label className="mb-3 block text-sm font-medium text-page-label">{t('topup.paymentMethod')}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {onlinePaymentMethods.map((method) => {
+                      const isCurrentLoading = paymentLoading && payingMethod === method.type;
+                      return (
+                        <button
+                          key={method.type}
+                          onClick={() => handlePay(method.type)}
+                          disabled={paymentLoading || !amount}
+                          className="inline-flex items-center gap-2 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-2.5 text-sm font-medium text-page-label transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {isCurrentLoading ? t('topup.processing') : method.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            <div className="space-y-6">
-              {enableCrypto && availableChains.length > 0 && (
+            {showCryptoPaymentPanel && (
+              <div className="space-y-6">
                 <div className="rounded-2xl border border-page-divider bg-page-surface/40 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-brand-500" />
@@ -554,52 +586,8 @@ export default function Topup() {
                     </button>
                   </div>
                 </div>
-              )}
-
-              {site?.enable_topup && enableCreem && creemProducts.length > 0 && (
-                <div className="rounded-2xl border border-page-divider bg-page-surface/40 p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-brand-500" />
-                    <h3 className="text-sm font-semibold text-page">{t('topup.creemPayment') || 'Creem payment'}</h3>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {creemProducts.map((product) => (
-                      <button
-                        key={product.productId}
-                        className={`rounded-2xl border p-4 text-left transition-colors ${
-                          selectedCreemProduct?.productId === product.productId
-                            ? 'border-brand-500/40 bg-brand-500/10'
-                            : 'border-page-divider bg-page-surface/40 hover:bg-page-surface-hover'
-                        }`}
-                        onClick={() => setSelectedCreemProduct(product)}
-                      >
-                        <div className="text-sm font-semibold text-page">{product.name}</div>
-                        <div className="mt-2 text-xl font-semibold text-page-success">
-                          ${product.price}
-                          <span className="ml-1 text-xs font-normal text-page-muted">{product.currency || 'USD'}</span>
-                        </div>
-                        {product.quota && (
-                          <p className="mt-1 text-xs text-page-secondary">{t('topup.quotaIncluded') || `${product.quota} quota`}</p>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  {selectedCreemProduct && (
-                    <div className="mt-4 flex justify-stretch sm:justify-end">
-                      <button
-                        onClick={() => handleCreemPay(selectedCreemProduct)}
-                        disabled={paymentLoading}
-                        className="btn-primary w-full justify-center px-6 sm:w-auto"
-                      >
-                        {paymentLoading && payingMethod === 'creem'
-                          ? t('topup.processing')
-                          : `${t('topup.payNow') || 'Pay'} $${selectedCreemProduct.price}`}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </ConsoleSection>
       )}
