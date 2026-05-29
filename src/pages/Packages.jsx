@@ -620,10 +620,10 @@ function PackageModal({ title, children, actions, onClose }) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-950/20"
+        className="glass w-full max-w-md rounded-xl p-5 shadow-2xl shadow-cyan-950/30"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+        <h2 className="text-lg font-semibold text-page">{title}</h2>
         <div className="mt-3">{children}</div>
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           {actions}

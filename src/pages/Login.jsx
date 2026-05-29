@@ -89,19 +89,19 @@ export default function Login() {
       <section className="coss-container grid gap-6 py-8 sm:py-10 lg:grid-cols-[minmax(0,0.94fr)_minmax(380px,0.6fr)] lg:gap-8">
         <div className="order-2 grid content-start gap-4 lg:order-1">
           <div className="coss-card-frame overflow-hidden">
-            <div className="border-b border-slate-200 bg-slate-50/80 px-5 py-4">
-              <p className="text-sm font-semibold text-slate-950">Console workspace</p>
-              <p className="mt-1 text-sm text-slate-500">Everything needed after sign-in, without leaving the product surface.</p>
+            <div className="border-b border-page-divider bg-page-surface/50 px-5 py-4">
+              <p className="text-sm font-semibold text-page">Console workspace</p>
+              <p className="mt-1 text-sm text-page-muted">Everything needed after sign-in, without leaving the product surface.</p>
             </div>
             <div className="grid gap-3 p-4 sm:grid-cols-3 lg:grid-cols-1">
               {featureRows.map(({ icon: Icon, title, text }) => (
-                <div key={title} className="flex gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+                <div key={title} className="flex gap-3 rounded-2xl border border-page-divider bg-page-surface/40 p-4">
                   <span className="coss-icon-tile">
                     <Icon size={17} />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-slate-950">{title}</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">{text}</p>
+                    <p className="text-sm font-semibold text-page">{title}</p>
+                    <p className="mt-1 text-sm leading-6 text-page-muted">{text}</p>
                   </div>
                 </div>
               ))}
@@ -128,7 +128,7 @@ export default function Login() {
 
         <div className="order-1 lg:order-2">
           <div className="coss-card-frame overflow-hidden">
-            <div className="border-b border-slate-200 bg-white px-5 py-5 sm:px-6">
+            <div className="border-b border-page-divider bg-page-surface/50 px-5 py-5 sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Welcome back</p>
@@ -182,9 +182,9 @@ export default function Login() {
                 </button>
               </form>
 
-              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
-                <p className="flex items-start gap-2 text-xs leading-5 text-emerald-900">
-                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-700" />
+              <div className="mt-5 rounded-2xl border border-emerald-300/20 bg-emerald-300/10 p-3">
+                <p className="flex items-start gap-2 text-xs leading-5 text-emerald-100">
+                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-emerald-300" />
                   Your account opens keys, logs, model catalog tools, and playground access in the same console.
                 </p>
               </div>
@@ -207,12 +207,12 @@ export default function Login() {
 
 function MiniMetric({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+    <div className="rounded-2xl border border-page-divider bg-page-surface/40 p-3">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-page-muted">
         <Icon size={14} />
         {label}
       </div>
-      <p className="mt-2 text-sm font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-sm font-semibold text-page">{value}</p>
     </div>
   );
 }

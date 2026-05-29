@@ -1511,13 +1511,23 @@
 }
 
 .theme-saas .coss-page .bg-white,
+.theme-saas .coss-page .bg-white\/50,
+.theme-saas .coss-page .bg-white\/80,
+.theme-saas .coss-page .bg-white\/85,
+.theme-saas .coss-page .bg-white\/90,
 .theme-saas .coss-page .bg-slate-50,
-.theme-saas .coss-page .bg-slate-50\/80 {
+.theme-saas .coss-page .bg-slate-50\/60,
+.theme-saas .coss-page .bg-slate-50\/80,
+.theme-saas .coss-page .bg-slate-100,
+.theme-saas .coss-page .bg-slate-200 {
   background-color: rgba(255,255,255,0.07);
 }
 
 .theme-saas .coss-page .hover\:bg-slate-50\/80:hover,
-.theme-saas .coss-page .hover\:bg-slate-50:hover {
+.theme-saas .coss-page .hover\:bg-slate-50:hover,
+.theme-saas .coss-page .hover\:bg-slate-100:hover,
+.theme-saas .coss-page .hover\:bg-slate-200:hover,
+.theme-saas .coss-page .hover\:bg-white:hover {
   background-color: rgba(34,211,238,0.1);
 }
 
@@ -1582,6 +1592,126 @@
 .theme-saas .coss-page code,
 .theme-saas .coss-page pre {
   color: #e0fbff;
+}
+
+.theme-saas .bg-white,
+.theme-saas .bg-white\/50,
+.theme-saas .bg-white\/80,
+.theme-saas .bg-white\/85,
+.theme-saas .bg-white\/90,
+.theme-saas .bg-gray-50,
+.theme-saas .bg-gray-100,
+.theme-saas .bg-gray-200,
+.theme-saas .bg-slate-50,
+.theme-saas .bg-slate-50\/60,
+.theme-saas .bg-slate-50\/80,
+.theme-saas .bg-slate-100,
+.theme-saas .bg-slate-200,
+.theme-saas .bg-neutral-50,
+.theme-saas .bg-neutral-100,
+.theme-saas .bg-zinc-50,
+.theme-saas .bg-zinc-100 {
+  background-color: rgba(255,255,255,0.07) !important;
+}
+
+.theme-saas .hover\:bg-white:hover,
+.theme-saas .hover\:bg-gray-50:hover,
+.theme-saas .hover\:bg-gray-100:hover,
+.theme-saas .hover\:bg-slate-50:hover,
+.theme-saas .hover\:bg-slate-50\/60:hover,
+.theme-saas .hover\:bg-slate-50\/80:hover,
+.theme-saas .hover\:bg-slate-100:hover,
+.theme-saas .hover\:bg-slate-200:hover,
+.theme-saas .hover\:bg-neutral-50:hover,
+.theme-saas .hover\:bg-neutral-100:hover,
+.theme-saas .hover\:bg-zinc-50:hover,
+.theme-saas .hover\:bg-zinc-100:hover {
+  background-color: rgba(34,211,238,0.12) !important;
+}
+
+.theme-saas .border-gray-100,
+.theme-saas .border-gray-200,
+.theme-saas .border-gray-300,
+.theme-saas .border-slate-100,
+.theme-saas .border-slate-200,
+.theme-saas .border-slate-300,
+.theme-saas .border-neutral-100,
+.theme-saas .border-neutral-200,
+.theme-saas .border-zinc-100,
+.theme-saas .border-zinc-200,
+.theme-saas .divide-gray-100 > * + *,
+.theme-saas .divide-gray-200 > * + *,
+.theme-saas .divide-slate-100 > * + *,
+.theme-saas .divide-slate-200 > * + *,
+.theme-saas .divide-neutral-100 > * + *,
+.theme-saas .divide-neutral-200 > * + * {
+  border-color: rgba(34,211,238,0.18) !important;
+}
+
+.theme-saas .text-slate-950,
+.theme-saas .text-slate-900,
+.theme-saas .text-gray-950,
+.theme-saas .text-gray-900 {
+  color: #f8fafc !important;
+}
+
+.theme-saas .text-slate-800,
+.theme-saas .text-slate-700,
+.theme-saas .text-gray-800,
+.theme-saas .text-gray-700 {
+  color: #c7f9ff !important;
+}
+
+.theme-saas .text-slate-600,
+.theme-saas .text-slate-500,
+.theme-saas .text-gray-600,
+.theme-saas .text-gray-500 {
+  color: #aab8d5 !important;
+}
+
+.theme-saas .text-slate-400,
+.theme-saas .text-gray-400,
+.theme-saas .text-neutral-400,
+.theme-saas .text-zinc-400 {
+  color: #8aa2c9 !important;
+}
+
+.theme-saas .text-neutral-950,
+.theme-saas .text-neutral-900,
+.theme-saas .text-zinc-950,
+.theme-saas .text-zinc-900 {
+  color: #f8fafc !important;
+}
+
+.theme-saas .text-neutral-800,
+.theme-saas .text-neutral-700,
+.theme-saas .text-zinc-800,
+.theme-saas .text-zinc-700 {
+  color: #c7f9ff !important;
+}
+
+.theme-saas .text-neutral-600,
+.theme-saas .text-neutral-500,
+.theme-saas .text-zinc-600,
+.theme-saas .text-zinc-500 {
+  color: #aab8d5 !important;
+}
+
+.theme-saas .shadow-slate-200,
+.theme-saas .shadow-slate-900\/10,
+.theme-saas .shadow-slate-950\/20 {
+  --tw-shadow-color: rgba(34,211,238,0.16) !important;
+  --tw-shadow: var(--tw-shadow-colored) !important;
+}
+
+.theme-saas .modal-overlay .bg-white,
+.theme-saas .modal-overlay .bg-slate-50,
+.theme-saas .modal-overlay .bg-slate-100 {
+  background-color: rgba(18,11,47,0.96) !important;
+}
+
+.theme-saas .modal-overlay .border-slate-200 {
+  border-color: rgba(34,211,238,0.24) !important;
 }
 
 .theme-saas .border-brand-500\/30 {

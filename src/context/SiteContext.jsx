@@ -25,7 +25,7 @@ const siteCacheKey = 'dist-site-info-cache-v2';
 
 // Map theme template name → CSS class(es) to apply on <body>
 const themeClassMap = {
-  saas: 'theme-light theme-saas',
+  saas: 'theme-saas',
   starter: 'theme-light theme-starter',
   default: 'theme-light theme-starter',
   dark: 'theme-dark',

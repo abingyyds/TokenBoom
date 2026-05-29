@@ -149,7 +149,7 @@ export default function SaasLayout() {
   }, []);
 
   return (
-    <div className="theme-saas min-h-screen bg-[#0b061f] text-slate-950">
+    <div className="theme-saas min-h-screen bg-[#0b061f] text-page">
       <TokenBoomSplash />
       {site?.announcement && (
         <div className="border-b border-cyan-300/20 bg-[#0b061f] px-4 py-2 text-center text-sm font-semibold text-cyan-100">
@@ -403,14 +403,14 @@ export default function SaasLayout() {
         )}
       </header>
 
-      <main className={isConsoleShell ? 'bg-[#f7f9fc]' : ''}>
+      <main className={isConsoleShell ? 'bg-[#0b061f]' : ''}>
         {isConsoleShell ? (
           <div className="mx-auto grid max-w-[1500px] gap-5 px-3 py-4 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8">
             <aside className="hidden lg:block">
-              <div className="sticky top-20 overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-2 shadow-sm">
-                <div className="border-b border-slate-100 px-3 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Console</p>
-                  <p className="mt-1 truncate text-sm font-semibold text-slate-950">{displayName || siteName}</p>
+              <div className="sticky top-20 overflow-hidden rounded-2xl border border-cyan-300/20 bg-[#120b2f]/88 p-2 shadow-xl shadow-cyan-950/20 backdrop-blur-xl">
+                <div className="border-b border-cyan-300/15 px-3 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/70">Console</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-white">{displayName || siteName}</p>
                 </div>
                 <nav className="mt-2 grid gap-1">
                   {consoleSidebarItems.map((item) => {
@@ -421,8 +421,8 @@ export default function SaasLayout() {
                         to={navTarget(item)}
                         className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                           isActive(item)
-                            ? 'bg-slate-950 text-white'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                            ? 'bg-cyan-300 text-[#0b061f]'
+                            : 'text-slate-200 hover:bg-white/10 hover:text-white'
                         }`}
                       >
                         <Icon size={16} />
@@ -443,8 +443,8 @@ export default function SaasLayout() {
                       to={navTarget(item)}
                       className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium ${
                         isActive(item)
-                          ? 'border-slate-950 bg-slate-950 text-white'
-                          : 'border-slate-200 bg-white text-slate-600'
+                          ? 'border-cyan-300 bg-cyan-300 text-[#0b061f]'
+                          : 'border-cyan-300/20 bg-[#120b2f]/80 text-slate-200'
                       }`}
                     >
                       <Icon size={15} />

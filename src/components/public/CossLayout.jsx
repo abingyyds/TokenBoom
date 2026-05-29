@@ -39,16 +39,16 @@ export function CossPageHeader({
                 {eyebrow}
               </div>
             )}
-            <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
+            <h1 className="text-3xl font-semibold tracking-normal text-page sm:text-4xl">
               {title}
             </h1>
             {description && (
-              <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
+              <p className="mt-4 max-w-3xl text-base leading-7 text-page-secondary">
                 {description}
               </p>
             )}
             {secondary && (
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-page-muted">
                 {secondary}
               </p>
             )}
@@ -105,9 +105,9 @@ export function CossMutedCard({ children, className = '', as: Component = 'div',
 export function CossStat({ label, value, detail }) {
   return (
     <CossMutedCard className="min-w-0 px-3 py-3 sm:px-4">
-      <p className="truncate text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-xl font-semibold text-slate-950 sm:text-2xl">{value}</p>
-      {detail && <p className="mt-1 truncate text-xs text-slate-500">{detail}</p>}
+      <p className="truncate text-xs font-medium text-page-muted">{label}</p>
+      <p className="mt-1 break-words text-xl font-semibold text-page sm:text-2xl">{value}</p>
+      {detail && <p className="mt-1 truncate text-xs text-page-muted">{detail}</p>}
     </CossMutedCard>
   );
 }
@@ -123,8 +123,8 @@ export function CossIconTile({ icon: Icon, className = '' }) {
 export function CossEmptyState({ title, text, action }) {
   return (
     <CossCard className="px-6 py-12 text-center">
-      <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
-      {text && <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">{text}</p>}
+      <h2 className="text-lg font-semibold text-page">{title}</h2>
+      {text && <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-page-secondary">{text}</p>}
       {action && <div className="mt-5">{action}</div>}
     </CossCard>
   );
@@ -134,7 +134,7 @@ export function CossSearchInput({ icon: Icon, className = '', ...props }) {
   return (
     <label className={join('relative block', className)}>
       {props['aria-label'] && <span className="sr-only">{props['aria-label']}</span>}
-      {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />}
+      {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-page-muted" />}
       <input
         {...props}
         className={join('coss-input h-10', Icon ? 'pl-10' : '', props.className)}
@@ -148,7 +148,7 @@ export function CossSelect({ label, value, onChange, children, icon: Icon, class
     <label className={join('min-w-0', className)}>
       <span className="sr-only">{label}</span>
       <div className="relative">
-        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />}
+        {Icon && <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-page-muted" />}
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -156,7 +156,7 @@ export function CossSelect({ label, value, onChange, children, icon: Icon, class
         >
           {children}
         </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-page-muted">
           v
         </span>
       </div>
@@ -189,9 +189,9 @@ export function CossTableFrame({ title, meta, children, className = '' }) {
   return (
     <CossCardFrame className={join('overflow-hidden', className)}>
       {(title || meta) && (
-        <div className="flex flex-col gap-1 border-b border-slate-200 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          {title && <p className="text-sm font-semibold text-slate-950">{title}</p>}
-          {meta && <p className="text-xs font-medium text-slate-500">{meta}</p>}
+        <div className="flex flex-col gap-1 border-b border-page-divider bg-page-surface/50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          {title && <p className="text-sm font-semibold text-page">{title}</p>}
+          {meta && <p className="text-xs font-medium text-page-muted">{meta}</p>}
         </div>
       )}
       {children}
