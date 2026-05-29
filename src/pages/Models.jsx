@@ -136,7 +136,7 @@ export default function Models() {
           <div className="mt-4">
             <CossTabs items={categoryTabs} value={category} onChange={setCategory} />
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-page-muted">
             <span className="inline-flex items-center gap-2">
               <SlidersHorizontal size={14} />
               {filteredModels.length} of {enabledModels.length} models shown
@@ -154,7 +154,7 @@ export default function Models() {
             <CossCardFrame className="hidden overflow-hidden lg:block">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
+                  <tr className="border-b border-page-divider bg-page-surface/40 text-left text-page-muted">
                     <th className="px-5 py-3 font-medium">Model</th>
                     <th className="px-5 py-3 font-medium">Category</th>
                     <th className="px-5 py-3 text-right font-medium">Site price</th>
@@ -163,20 +163,20 @@ export default function Models() {
                 </thead>
                 <tbody>
                   {filteredModels.map((model) => (
-                    <tr key={getModelId(model)} className="border-b border-slate-100 align-top last:border-0 hover:bg-slate-50/80">
+                    <tr key={getModelId(model)} className="border-b border-page-divider align-top last:border-0 hover:bg-page-surface-hover">
                       <td className="px-5 py-4">
-                        <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-slate-700">
+                        <Link to={getModelRoute(model)} className="font-semibold text-page hover:text-page-link">
                           {getModelDisplayName(model)}
                         </Link>
                         <div className="mt-1 flex max-w-xl items-center gap-2">
-                          <code className="truncate font-mono text-xs text-slate-500">{getModelId(model)}</code>
+                          <code className="truncate font-mono text-xs text-page-muted">{getModelId(model)}</code>
                           <CopyButton text={getModelId(model)} label="Copy id" iconOnly className="h-7 w-7 px-0 py-0" />
                         </div>
-                        <p className="mt-2 line-clamp-2 max-w-2xl text-xs leading-5 text-slate-500">
+                        <p className="mt-2 line-clamp-2 max-w-2xl text-xs leading-5 text-page-muted">
                           {getModelSummary(model)}
                         </p>
                       </td>
-                      <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
+                      <td className="px-5 py-4 text-page-secondary">{getModelCategory(model)}</td>
                       <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
@@ -199,14 +199,14 @@ export default function Models() {
                 <CossCard key={getModelId(model)} as="article" className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <Link to={getModelRoute(model)} className="font-semibold text-slate-950">
+                      <Link to={getModelRoute(model)} className="font-semibold text-page">
                         {getModelDisplayName(model)}
                       </Link>
-                      <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                      <p className="mt-1 break-all font-mono text-xs text-page-muted">{getModelId(model)}</p>
                     </div>
                     <CopyButton text={getModelId(model)} iconOnly className="h-8 w-8 shrink-0 px-0 py-0" />
                   </div>
-                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{getModelSummary(model)}</p>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-page-secondary">{getModelSummary(model)}</p>
                   <div className="mt-3"><ModelBadges model={model} limit={4} /></div>
                   <div className="mt-4"><ModelPrice model={model} /></div>
                   <div className="mt-4 grid grid-cols-2 gap-2">
@@ -234,11 +234,11 @@ function ModelListSkeleton() {
         <table className="w-full text-sm">
           <tbody>
             {Array.from({ length: 8 }, (_, index) => (
-              <tr key={index} className="border-b border-slate-100 last:border-0">
-                <td className="px-5 py-4"><div className="h-4 w-64 animate-pulse rounded bg-slate-200" /></td>
-                <td className="px-5 py-4"><div className="h-4 w-20 animate-pulse rounded bg-slate-100" /></td>
-                <td className="px-5 py-4"><div className="ml-auto h-4 w-24 animate-pulse rounded bg-slate-100" /></td>
-                <td className="px-5 py-4"><div className="ml-auto h-4 w-28 animate-pulse rounded bg-slate-100" /></td>
+              <tr key={index} className="border-b border-page-divider last:border-0">
+                <td className="px-5 py-4"><div className="h-4 w-64 animate-pulse rounded bg-page-surface-hover" /></td>
+                <td className="px-5 py-4"><div className="h-4 w-20 animate-pulse rounded bg-page-surface" /></td>
+                <td className="px-5 py-4"><div className="ml-auto h-4 w-24 animate-pulse rounded bg-page-surface" /></td>
+                <td className="px-5 py-4"><div className="ml-auto h-4 w-28 animate-pulse rounded bg-page-surface" /></td>
               </tr>
             ))}
           </tbody>
@@ -247,9 +247,9 @@ function ModelListSkeleton() {
       <div className="grid gap-4 lg:hidden">
         {Array.from({ length: 4 }, (_, index) => (
           <CossCard key={index} className="p-4">
-            <div className="h-4 w-44 animate-pulse rounded bg-slate-200" />
-            <div className="mt-3 h-3 w-full animate-pulse rounded bg-slate-100" />
-            <div className="mt-5 h-10 w-full animate-pulse rounded bg-slate-100" />
+            <div className="h-4 w-44 animate-pulse rounded bg-page-surface-hover" />
+            <div className="mt-3 h-3 w-full animate-pulse rounded bg-page-surface" />
+            <div className="mt-5 h-10 w-full animate-pulse rounded bg-page-surface" />
           </CossCard>
         ))}
       </div>

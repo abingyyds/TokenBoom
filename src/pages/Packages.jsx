@@ -83,8 +83,8 @@ function BillingStep({ icon: Icon, title, desc }) {
   return (
     <CossCard className="p-5">
       <CossIconTile icon={Icon} />
-      <h3 className="mt-4 text-sm font-semibold text-slate-950">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{desc}</p>
+      <h3 className="mt-4 text-sm font-semibold text-page">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-page-secondary">{desc}</p>
     </CossCard>
   );
 }
@@ -313,7 +313,7 @@ export default function Packages() {
   if (loading) {
     return (
       <CossPage className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="animate-spin text-slate-400" size={28} />
+        <Loader2 className="animate-spin text-page-muted" size={28} />
       </CossPage>
     );
   }
@@ -332,8 +332,8 @@ export default function Packages() {
           <CossCardFrame className="p-5">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-950">{t('packages.mySubscriptions')}</h2>
-                <p className="mt-1 text-sm text-slate-500">Your active plans, renewal windows, and available credits are managed automatically.</p>
+                <h2 className="text-lg font-semibold text-page">{t('packages.mySubscriptions')}</h2>
+                <p className="mt-1 text-sm text-page-muted">Your active plans, renewal windows, and available credits are managed automatically.</p>
               </div>
             </div>
 
@@ -350,37 +350,37 @@ export default function Packages() {
                   <CossMutedCard key={`${sub.billing_source || 'subscription'}-${sub.id}`} className="p-4">
                     <div className="mb-4 flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-slate-950">{pkg?.name || sub.package_name || t('packages.subscriptionId', { id: sub.id })}</p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="font-semibold text-page">{pkg?.name || sub.package_name || t('packages.subscriptionId', { id: sub.id })}</p>
+                        <p className="mt-1 text-xs text-page-muted">
                           {sub.billing_source === 'balance' ? 'Balance package' : 'Site subscription'} #{sub.id}
                         </p>
                       </div>
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                         ['active', 'trialing'].includes(status)
-                          ? 'bg-emerald-50 text-emerald-700'
+                          ? 'bg-emerald-500/10 text-page-success'
                           : status.includes('cancel')
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-slate-200 text-slate-700'
+                            ? 'bg-amber-500/10 text-page-warning'
+                            : 'bg-page-surface text-page-secondary'
                       }`}>
                         {status}
                       </span>
                     </div>
                     <div className="mb-3 grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <p className="text-xs text-slate-500">Current period ends</p>
-                        <p className="mt-1 font-medium text-slate-950">{formatDate(sub.current_period_end || sub.end_time)}</p>
+                        <p className="text-xs text-page-muted">Current period ends</p>
+                        <p className="mt-1 font-medium text-page">{formatDate(sub.current_period_end || sub.end_time)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-500">Next renewal</p>
-                        <p className="mt-1 font-medium text-slate-950">{formatDate(sub.next_renewal_time || sub.next_reset_time || sub.current_period_end)}</p>
+                        <p className="text-xs text-page-muted">Next renewal</p>
+                        <p className="mt-1 font-medium text-page">{formatDate(sub.next_renewal_time || sub.next_reset_time || sub.current_period_end)}</p>
                       </div>
                     </div>
-                    <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+                    <div className="mb-1 flex items-center justify-between text-xs text-page-muted">
                       <span>Credit used</span>
                       <span>{symbol}{(remain / Q * rate).toFixed(2)} remaining</span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                      <div className="h-full rounded-full bg-slate-950" style={{ width: `${pct}%` }} />
+                    <div className="h-2 overflow-hidden rounded-full bg-page-inset">
+                      <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
                     </div>
                   </CossMutedCard>
                 );
@@ -393,8 +393,8 @@ export default function Packages() {
       <CossSection>
         {enabledPackages.length === 0 ? (
           <CossCardFrame className="p-10 text-center">
-            <p className="text-slate-600">{t('packages.noPackages')}</p>
-            <Link to="/models?sort=price" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
+            <p className="text-page-secondary">{t('packages.noPackages')}</p>
+            <Link to="/models?sort=price" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-page">
               {t('packages.checkPricing')} <ArrowRight size={16} />
             </Link>
           </CossCardFrame>
@@ -410,65 +410,65 @@ export default function Packages() {
                 <div
                   key={pkg.id}
                   className={`coss-card-frame relative flex flex-col p-5 sm:p-6 ${
-                    isFeatured ? 'border-slate-950 shadow-lg shadow-slate-200' : ''
+                    isFeatured ? 'border-brand-500/50 shadow-lg shadow-brand-500/20' : ''
                   }`}
                 >
                   {isFeatured && (
-                    <span className="mb-5 inline-flex w-fit rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
+                    <span className="mb-5 inline-flex w-fit rounded-full bg-brand-500 px-3 py-1 text-xs font-semibold text-[#0b061f]">
                       Recommended
                     </span>
                   )}
                   <div className="flex-1">
-                    <h3 className="break-words text-lg font-semibold text-slate-950 sm:text-xl">{pkg.name}</h3>
+                    <h3 className="break-words text-lg font-semibold text-page sm:text-xl">{pkg.name}</h3>
                     {pkg.description && (
-                      <p className="mt-2 min-h-[48px] text-sm leading-6 text-slate-600">{pkg.description}</p>
+                      <p className="mt-2 min-h-[48px] text-sm leading-6 text-page-secondary">{pkg.description}</p>
                     )}
 
                     <div className="mt-6 flex items-end gap-2">
-                      <span className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
+                      <span className="text-3xl font-semibold tracking-normal text-page sm:text-4xl">
                         {fmtPlanPrice(pkg.price, pkg.currency)}
                       </span>
-                      <span className="pb-1 text-sm text-slate-500">/ {interval}</span>
+                      <span className="pb-1 text-sm text-page-muted">/ {interval}</span>
                     </div>
                     {pkg.original_price > 0 && pkg.original_price > pkg.price && (
-                      <p className="mt-1 text-sm text-slate-400 line-through">
+                      <p className="mt-1 text-sm text-page-muted line-through">
                         {fmtPlanPrice(pkg.original_price, pkg.currency)}
                       </p>
                     )}
 
-                    <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div className="mt-6 rounded-lg border border-page-divider bg-page-surface/50 p-4">
                       <div className="flex items-start gap-3">
-                        <RefreshCcw className="mt-0.5 text-slate-700" size={18} />
+                        <RefreshCcw className="mt-0.5 text-page-secondary" size={18} />
                         <div>
-                          <p className="text-sm font-semibold text-slate-950">
+                          <p className="text-sm font-semibold text-page">
                            Balance purchase or subscription
                           </p>
-                          <p className="mt-1 text-sm leading-6 text-slate-600">
+                          <p className="mt-1 text-sm leading-6 text-page-secondary">
                             Pay from account balance now, or use SaaS checkout for recurring subscription activation.
                           </p>
                         </div>
                       </div>
                     </div>
 
-                    <ul className="mt-6 space-y-3 text-sm text-slate-600">
+                    <ul className="mt-6 space-y-3 text-sm text-page-secondary">
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-emerald-600" />
+                        <BadgeCheck size={16} className="text-page-success" />
                         <span>{monthlyCredit > 0 ? `${symbol}${(monthlyCredit * rate).toFixed(2)} ${getResetLabel(resetPeriod)} credit` : 'Custom credit allocation'}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-emerald-600" />
+                        <BadgeCheck size={16} className="text-page-success" />
                         <span>{enabledModels.length || 50}+ public models</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-emerald-600" />
+                        <BadgeCheck size={16} className="text-page-success" />
                         <span>Balance purchase uses your current account balance</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-emerald-600" />
+                        <BadgeCheck size={16} className="text-page-success" />
                         <span>Subscription checkout renews through the SaaS billing flow</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-emerald-600" />
+                        <BadgeCheck size={16} className="text-page-success" />
                         <span>OpenAI-compatible API keys</span>
                       </li>
                     </ul>
@@ -481,8 +481,8 @@ export default function Packages() {
                       disabled={balanceLoading === pkg.id || checkoutLoading === pkg.id || checkoutSyncing}
                       className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                         isFeatured
-                          ? 'bg-slate-950 text-white hover:bg-slate-800'
-                          : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                          ? 'bg-brand-500 text-[#0b061f] hover:bg-brand-400'
+                          : 'bg-page-surface text-page hover:bg-page-surface-hover'
                       }`}
                     >
                       {balanceLoading === pkg.id ? (
@@ -501,7 +501,7 @@ export default function Packages() {
                       type="button"
                       onClick={() => handleSubscribe(pkg)}
                       disabled={checkoutLoading === pkg.id || balanceLoading === pkg.id || checkoutSyncing}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-page-divider bg-page-surface/50 px-4 py-3 text-sm font-semibold text-page-secondary transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {checkoutLoading === pkg.id || checkoutSyncing ? (
                         <>
@@ -575,12 +575,12 @@ export default function Packages() {
             </>
           )}
         >
-          <p className="text-sm leading-6 text-slate-600">
-            Buy <span className="font-semibold text-slate-950">{confirmBalancePkg.name}</span> with account balance for{' '}
-            <span className="font-semibold text-slate-950">{formatBalancePrice(confirmBalancePkg)}</span>.
+          <p className="text-sm leading-6 text-page-secondary">
+            Buy <span className="font-semibold text-page">{confirmBalancePkg.name}</span> with account balance for{' '}
+            <span className="font-semibold text-page">{formatBalancePrice(confirmBalancePkg)}</span>.
           </p>
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-            Current balance: <span className="font-semibold text-slate-950">{symbol}{userBalance.toFixed(2)}</span>
+          <div className="mt-4 rounded-lg border border-page-divider bg-page-surface/50 p-3 text-sm text-page-secondary">
+            Current balance: <span className="font-semibold text-page">{symbol}{userBalance.toFixed(2)}</span>
           </div>
         </PackageModal>
       )}
@@ -600,11 +600,11 @@ export default function Packages() {
             </>
           )}
         >
-          <p className="text-sm leading-6 text-slate-600">
-            Your current balance is <span className="font-semibold text-slate-950">{symbol}{userBalance.toFixed(2)}</span>.
-            Please recharge before buying <span className="font-semibold text-slate-950">{insufficientPkg.name}</span> with balance.
+          <p className="text-sm leading-6 text-page-secondary">
+            Your current balance is <span className="font-semibold text-page">{symbol}{userBalance.toFixed(2)}</span>.
+            Please recharge before buying <span className="font-semibold text-page">{insufficientPkg.name}</span> with balance.
           </p>
-          <p className="mt-3 text-sm leading-6 text-slate-600">
+          <p className="mt-3 text-sm leading-6 text-page-secondary">
             You can also choose Subscribe to use the SaaS subscription checkout flow.
           </p>
         </PackageModal>

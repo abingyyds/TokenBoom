@@ -120,14 +120,14 @@ for await (const part of stream) {
           <CossCardFrame className="p-5">
             <div className="flex items-center gap-2">
               <CossIconTile icon={Server} />
-              <h2 className="font-semibold text-slate-950">Endpoint</h2>
+              <h2 className="font-semibold text-page">Endpoint</h2>
             </div>
             <div className="mt-4 space-y-3">
               <CopyRow label="Base URL" value={baseUrl} />
               <CopyRow label="Chat" value={`${baseUrl}/chat/completions`} />
               <CopyRow label="Model id" value={chatModelId} />
             </div>
-            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+            <p className="mt-4 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-page-warning">
               {INVALID_WEBSITE_API_BASE_URL} alone is invalid for API calls. Use the API base URL shown above.
             </p>
           </CossCardFrame>
@@ -151,15 +151,15 @@ for await (const part of stream) {
             <CossCardFrame className="p-3">
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
                 {navItems.map((item) => (
-                  <a key={item.id} href={`#${item.id}`} className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950 lg:block lg:w-full">
+                  <a key={item.id} href={`#${item.id}`} className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-page-secondary hover:bg-page-surface-hover hover:text-page lg:block lg:w-full">
                     {item.label}
                   </a>
                 ))}
               </div>
             </CossCardFrame>
             <CossCardFrame className="p-4">
-              <p className="text-sm font-semibold text-slate-950">Current example model</p>
-              <p className="mt-2 truncate font-mono text-xs text-slate-500">{chatModelId}</p>
+              <p className="text-sm font-semibold text-page">Current example model</p>
+              <p className="mt-2 truncate font-mono text-xs text-page-muted">{chatModelId}</p>
               <div className="mt-3 flex gap-2">
                 <Link to={`/playground?model=${encodeURIComponent(chatModelId)}`} className="coss-button-primary min-h-9 min-w-0 flex-1 px-3 py-2 text-xs">
                   Playground
@@ -171,17 +171,17 @@ for await (const part of stream) {
 
           <div className="min-w-0 space-y-6">
             <DocCard id="api-key" icon={KeyRound} title="Get API key">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 Create an account, open API Keys, and generate a key. Send it as a bearer token on every request to the API base URL.
               </p>
               <CodeBlock title="Environment" language="bash" code={envSnippet} />
             </DocCard>
 
             <DocCard id="base-url" icon={Server} title="Base URL">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 Use the API base URL shown here for OpenAI-compatible requests. It must include the API path, such as /v1.
               </p>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+              <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-4 text-sm leading-6 text-page-warning">
                 <code className="font-mono">{INVALID_WEBSITE_API_BASE_URL}</code> alone is invalid for API calls. Clients must use <code className="font-mono">{baseUrl}</code>.
               </div>
               <div className="grid gap-3 md:grid-cols-3">
@@ -199,7 +199,7 @@ Content-Type: application/json`}
             </DocCard>
 
             <DocCard id="selection" icon={Layers3} title="Model selection">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 Pick model ids from the public catalog, then match the request shape to the model category. Public listings are deduped by model family, so users choose a stable model id.
               </p>
               <div className="grid gap-3 md:grid-cols-3">
@@ -210,7 +210,7 @@ Content-Type: application/json`}
             </DocCard>
 
             <DocCard id="chat" icon={TerminalSquare} title="Requests: chat completions">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 Chat uses the OpenAI-compatible chat completions shape. Replace the model id with any compatible model from the public catalog.
               </p>
               <div className="grid gap-5">
@@ -222,24 +222,24 @@ Content-Type: application/json`}
             </DocCard>
 
             <DocCard id="streaming" icon={RefreshCw} title="Streaming responses">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 Enable streaming for chat completions when your client can consume incremental deltas. The base URL, bearer token, and model id stay the same.
               </p>
               <CodeBlock title="OpenAI JavaScript SDK streaming" language="js" code={streamingJs} />
             </DocCard>
 
             <DocCard id="multimodal" icon={Layers3} title="Multimodal request patterns">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 For vision-capable chat models, send message content as an array of typed parts. Keep the same /chat/completions endpoint and choose a model whose catalog entry supports the needed modality.
               </p>
               <CodeBlock title="Vision request" language="bash" code={jsonCurl(`${baseUrl}/chat/completions`, multimodalBody)} />
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                Text-only models should continue to send a string <code className="font-mono text-slate-900">content</code>. Use typed content parts only for models that support image or other multimodal inputs.
+              <div className="rounded-lg border border-page-divider bg-page-surface/50 p-4 text-sm leading-6 text-page-secondary">
+                Text-only models should continue to send a string <code className="font-mono text-page">content</code>. Use typed content parts only for models that support image or other multimodal inputs.
               </div>
             </DocCard>
 
             <DocCard id="models" icon={Layers3} title="Model IDs and catalog">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 Model IDs are copied from the public catalog and used exactly in API requests. Duplicate catalog entries are shown as one public model family.
               </p>
               <div className="grid gap-3 md:grid-cols-3">
@@ -255,10 +255,10 @@ Content-Type: application/json`}
             </DocCard>
 
             <DocCard id="pricing" icon={CreditCard} title="Pricing and cache pricing">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 Model cards show official USD input and output values from the public pricing feed. Per-call models show a call price when one is returned.
               </p>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+              <div className="rounded-lg border border-page-divider bg-page-surface/50 p-4 text-sm leading-6 text-page-secondary">
                 Always check the selected model details before production rollout because catalog pricing can change.
               </div>
             </DocCard>
@@ -275,7 +275,7 @@ Content-Type: application/json`}
             </DocCard>
 
             <DocCard id="migration" icon={RefreshCw} title="Migrating from OpenAI or OpenRouter">
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="text-sm leading-6 text-page-secondary">
                 Keep the OpenAI SDK shape for chat. Change the base URL to the API base URL shown here, replace the API key, and use a public catalog model id. Optional headers from other gateways are not required unless your own app depends on them.
               </p>
               <CodeBlock
@@ -291,7 +291,7 @@ model=${chatModelId}`}
               />
             </DocCard>
 
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-800">
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-5 text-sm leading-6 text-page-warning">
               <AlertCircle size={17} className="mr-2 inline-block align-[-3px]" />
               Browser pages in this frontend compose requests but do not run generation without an API key. Use the playground to prepare payloads, then run them from your server, terminal, or trusted client.
             </div>
@@ -305,9 +305,9 @@ model=${chatModelId}`}
 function CopyRow({ label, value }) {
   return (
     <CossMutedCard className="p-3">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className="text-xs font-medium text-page-muted">{label}</p>
       <div className="mt-2 flex items-center gap-2">
-        <code className="min-w-0 flex-1 truncate font-mono text-xs text-slate-800">{value}</code>
+        <code className="min-w-0 flex-1 truncate font-mono text-xs text-page-secondary">{value}</code>
         <CopyButton text={String(value)} iconOnly className="h-8 w-8 px-0 py-0" />
       </div>
     </CossMutedCard>
@@ -319,7 +319,7 @@ function DocCard({ id, icon: Icon, title, children }) {
     <CossCardFrame as="section" id={id} className="min-w-0 scroll-mt-8 overflow-hidden p-4 sm:p-6">
       <div className="mb-4 flex min-w-0 items-center gap-2">
         <CossIconTile icon={Icon} />
-        <h2 className="min-w-0 break-words text-lg font-semibold text-slate-950 sm:text-xl">{title}</h2>
+        <h2 className="min-w-0 break-words text-lg font-semibold text-page sm:text-xl">{title}</h2>
       </div>
       <div className="min-w-0 space-y-5">{children}</div>
     </CossCardFrame>
@@ -328,18 +328,18 @@ function DocCard({ id, icon: Icon, title, children }) {
 
 function LinkCard({ to, title, text }) {
   return (
-    <Link to={to} className="block min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-white">
-      <p className="break-words font-semibold text-slate-950">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+    <Link to={to} className="block min-w-0 rounded-lg border border-page-divider bg-page-surface/50 p-4 hover:bg-page-surface-hover">
+      <p className="break-words font-semibold text-page">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-page-secondary">{text}</p>
     </Link>
   );
 }
 
 function Trouble({ title, text }) {
   return (
-    <CossCard className="min-w-0 bg-slate-50 p-4">
-      <p className="break-words font-semibold text-slate-950">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+    <CossCard className="min-w-0 bg-page-surface/50 p-4">
+      <p className="break-words font-semibold text-page">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-page-secondary">{text}</p>
     </CossCard>
   );
 }

@@ -1614,6 +1614,26 @@
   background-color: rgba(255,255,255,0.07) !important;
 }
 
+.theme-saas .bg-emerald-50,
+.theme-saas .bg-green-50 {
+  background-color: rgba(16,185,129,0.12) !important;
+}
+
+.theme-saas .bg-amber-50 {
+  background-color: rgba(245,158,11,0.12) !important;
+}
+
+.theme-saas .bg-sky-50,
+.theme-saas .bg-cyan-50,
+.theme-saas .bg-blue-50 {
+  background-color: rgba(34,211,238,0.12) !important;
+}
+
+.theme-saas .bg-rose-50,
+.theme-saas .bg-red-50 {
+  background-color: rgba(244,63,94,0.12) !important;
+}
+
 .theme-saas .hover\:bg-white:hover,
 .theme-saas .hover\:bg-gray-50:hover,
 .theme-saas .hover\:bg-gray-100:hover,
@@ -1625,8 +1645,49 @@
 .theme-saas .hover\:bg-neutral-50:hover,
 .theme-saas .hover\:bg-neutral-100:hover,
 .theme-saas .hover\:bg-zinc-50:hover,
-.theme-saas .hover\:bg-zinc-100:hover {
+.theme-saas .hover\:bg-zinc-100:hover,
+.theme-saas .hover\:bg-emerald-50:hover,
+.theme-saas .hover\:bg-green-50:hover,
+.theme-saas .hover\:bg-amber-50:hover,
+.theme-saas .hover\:bg-sky-50:hover,
+.theme-saas .hover\:bg-cyan-50:hover,
+.theme-saas .hover\:bg-blue-50:hover,
+.theme-saas .hover\:bg-rose-50:hover,
+.theme-saas .hover\:bg-red-50:hover {
   background-color: rgba(34,211,238,0.12) !important;
+}
+
+.theme-saas .hover\:text-slate-950:hover,
+.theme-saas .hover\:text-slate-900:hover,
+.theme-saas .hover\:text-gray-950:hover,
+.theme-saas .hover\:text-gray-900:hover,
+.theme-saas .group:hover .group-hover\:text-slate-950,
+.theme-saas .group:hover .group-hover\:text-slate-900,
+.theme-saas .group:hover .group-hover\:text-gray-950,
+.theme-saas .group:hover .group-hover\:text-gray-900 {
+  color: #f8fafc !important;
+}
+
+.theme-saas .hover\:text-slate-800:hover,
+.theme-saas .hover\:text-slate-700:hover,
+.theme-saas .hover\:text-gray-800:hover,
+.theme-saas .hover\:text-gray-700:hover,
+.theme-saas .group:hover .group-hover\:text-slate-800,
+.theme-saas .group:hover .group-hover\:text-slate-700,
+.theme-saas .group:hover .group-hover\:text-gray-800,
+.theme-saas .group:hover .group-hover\:text-gray-700 {
+  color: #c7f9ff !important;
+}
+
+.theme-saas .hover\:border-slate-300:hover,
+.theme-saas .hover\:border-slate-200:hover,
+.theme-saas .hover\:border-gray-300:hover,
+.theme-saas .hover\:border-gray-200:hover,
+.theme-saas .group:hover .group-hover\:border-slate-300,
+.theme-saas .group:hover .group-hover\:border-slate-200,
+.theme-saas .group:hover .group-hover\:border-gray-300,
+.theme-saas .group:hover .group-hover\:border-gray-200 {
+  border-color: rgba(34,211,238,0.32) !important;
 }
 
 .theme-saas .border-gray-100,
@@ -1639,6 +1700,22 @@
 .theme-saas .border-neutral-200,
 .theme-saas .border-zinc-100,
 .theme-saas .border-zinc-200,
+.theme-saas .border-emerald-100,
+.theme-saas .border-emerald-200,
+.theme-saas .border-green-100,
+.theme-saas .border-green-200,
+.theme-saas .border-amber-100,
+.theme-saas .border-amber-200,
+.theme-saas .border-sky-100,
+.theme-saas .border-sky-200,
+.theme-saas .border-cyan-100,
+.theme-saas .border-cyan-200,
+.theme-saas .border-blue-100,
+.theme-saas .border-blue-200,
+.theme-saas .border-rose-100,
+.theme-saas .border-rose-200,
+.theme-saas .border-red-100,
+.theme-saas .border-red-200,
 .theme-saas .divide-gray-100 > * + *,
 .theme-saas .divide-gray-200 > * + *,
 .theme-saas .divide-slate-100 > * + *,
@@ -1695,6 +1772,56 @@
 .theme-saas .text-zinc-600,
 .theme-saas .text-zinc-500 {
   color: #aab8d5 !important;
+}
+
+.theme-saas .text-emerald-900,
+.theme-saas .text-emerald-800,
+.theme-saas .text-emerald-700,
+.theme-saas .text-emerald-600,
+.theme-saas .text-green-900,
+.theme-saas .text-green-800,
+.theme-saas .text-green-700,
+.theme-saas .text-green-600 {
+  color: #86efac !important;
+}
+
+.theme-saas .text-amber-900,
+.theme-saas .text-amber-800,
+.theme-saas .text-amber-700,
+.theme-saas .text-amber-600,
+.theme-saas .text-amber-500 {
+  color: #facc15 !important;
+}
+
+.theme-saas .text-sky-900,
+.theme-saas .text-sky-800,
+.theme-saas .text-sky-700,
+.theme-saas .text-sky-600,
+.theme-saas .text-sky-500,
+.theme-saas .text-cyan-900,
+.theme-saas .text-cyan-800,
+.theme-saas .text-cyan-700,
+.theme-saas .text-cyan-600,
+.theme-saas .text-cyan-500,
+.theme-saas .text-blue-900,
+.theme-saas .text-blue-800,
+.theme-saas .text-blue-700,
+.theme-saas .text-blue-600 {
+  color: #67e8f9 !important;
+}
+
+.theme-saas .text-rose-900,
+.theme-saas .text-rose-800,
+.theme-saas .text-rose-700,
+.theme-saas .text-rose-600,
+.theme-saas .text-rose-500,
+.theme-saas .text-red-900,
+.theme-saas .text-red-800,
+.theme-saas .text-red-700,
+.theme-saas .text-red-600,
+.theme-saas .text-red-500,
+.theme-saas .text-red-400 {
+  color: #fb7185 !important;
 }
 
 .theme-saas .shadow-slate-200,

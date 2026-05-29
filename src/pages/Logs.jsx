@@ -484,7 +484,7 @@ export default function Logs() {
       {preview && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" onClick={() => setPreview(null)}>
           <div className="relative max-h-[90vh] max-w-[92vw]" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="absolute -right-3 -top-3 z-10 rounded-full bg-white p-2 text-slate-900 shadow-lg" onClick={() => setPreview(null)}>
+            <button type="button" className="absolute -right-3 -top-3 z-10 rounded-full border border-page-divider bg-page-surface p-2 text-page shadow-lg" onClick={() => setPreview(null)}>
               <X className="h-4 w-4" />
             </button>
             {preview.type === 'video' && (
@@ -500,7 +500,7 @@ export default function Logs() {
               <img src={preview.url} alt={t('tasks.previewImage')} className="max-h-[88vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl" onClick={() => window.open(preview.url, '_blank')} />
             )}
             {preview.type === 'text' && (
-              <div className="max-h-[70vh] w-[min(760px,90vw)] overflow-auto rounded-2xl bg-white p-5 text-sm text-slate-800 shadow-2xl">
+              <div className="glass max-h-[70vh] w-[min(760px,90vw)] overflow-auto rounded-2xl p-5 text-sm text-page-secondary shadow-2xl">
                 <pre className="whitespace-pre-wrap break-words">{preview.text}</pre>
               </div>
             )}

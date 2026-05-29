@@ -678,7 +678,7 @@ export default function Playground() {
             onUsePrompt={setComposerText}
           />
 
-          <div className="border-t border-page-divider bg-white p-3 sm:p-4">
+          <div className="border-t border-page-divider bg-page-surface/50 p-3 sm:p-4">
             <div className="mb-3 flex min-w-0 gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
               {quickPromptChips.map((chip) => (
                 <button
@@ -797,7 +797,7 @@ function HistoryPanel({
           <div className="flex min-w-0 items-center gap-2">
             <History size={17} className="text-page-muted" />
             <h2 className="font-semibold text-page">History</h2>
-            <span className="rounded-full border border-page-divider bg-white px-2 py-0.5 text-xs font-semibold text-page-muted">
+            <span className="rounded-full border border-page-divider bg-page-surface px-2 py-0.5 text-xs font-semibold text-page-muted">
               {totalCount}
             </span>
           </div>
@@ -838,7 +838,7 @@ function HistoryPanel({
                   className={`group rounded-xl border p-2 transition-colors ${
                     active
                       ? 'border-slate-950 bg-slate-950 text-white'
-                      : 'border-page-divider bg-white hover:bg-page-surface-hover'
+                      : 'border-page-divider bg-page-surface/50 hover:bg-page-surface-hover'
                   }`}
                 >
                   {renamingId === conversation.id ? (
@@ -865,7 +865,7 @@ function HistoryPanel({
                         <button
                           type="button"
                           onClick={onCancelRename}
-                          className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-page-divider bg-white px-2 py-1.5 text-xs font-semibold text-page-secondary"
+                          className="inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-page-divider bg-page-surface/50 px-2 py-1.5 text-xs font-semibold text-page-secondary"
                         >
                           <X size={13} />
                           Cancel
@@ -943,7 +943,7 @@ function ChatTranscript({ conversation, isRunning, modelName, mode, onUsePrompt 
   const messages = conversation?.messages || [];
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-white p-3 sm:p-5">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-page-inset/40 p-3 sm:p-5">
       {messages.length === 0 ? (
         <div className="flex min-h-[420px] items-center justify-center">
           <div className="max-w-xl text-center">
@@ -1003,9 +1003,9 @@ function MessageBubble({ message, modelName, mode }) {
   const bubbleClass = isUser
     ? 'bg-slate-950 text-white'
     : isError
-      ? 'border border-rose-500/20 bg-rose-50 text-rose-800'
+      ? 'border border-rose-500/25 bg-rose-500/10 text-rose-200'
       : isSystem
-        ? 'border border-amber-500/20 bg-amber-50 text-amber-900'
+        ? 'border border-amber-500/25 bg-amber-500/10 text-amber-100'
         : 'border border-page-divider bg-page-surface/50 text-page';
   const metaClass = isUser ? 'text-slate-300' : isError ? 'text-rose-500' : 'text-page-muted';
   const attachments = Array.isArray(message.attachments) ? message.attachments : [];
@@ -1013,7 +1013,7 @@ function MessageBubble({ message, modelName, mode }) {
   return (
     <div className={`flex min-w-0 gap-3 ${isUser ? 'justify-end' : ''}`}>
       {!isUser && (
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isError ? 'bg-rose-100 text-rose-600' : 'border border-page-divider bg-white text-page-secondary'}`}>
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${isError ? 'border border-rose-500/25 bg-rose-500/10 text-rose-300' : 'border border-page-divider bg-page-surface text-page-secondary'}`}>
           <Icon size={17} />
         </div>
       )}
@@ -1133,7 +1133,7 @@ function InspectorPanel({
                   className={`block w-full rounded-lg border p-2 text-left transition-colors ${
                     active
                       ? 'border-slate-950 bg-slate-950 text-white'
-                      : 'border-page-divider bg-white text-page hover:bg-page-surface-hover'
+                      : 'border-page-divider bg-page-surface/50 text-page hover:bg-page-surface-hover'
                   }`}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-2">
@@ -1147,14 +1147,14 @@ function InspectorPanel({
               );
             })}
             {filteredModels.length === 0 && (
-              <div className="rounded-lg border border-dashed border-page-divider bg-white p-3 text-sm text-page-secondary">
+              <div className="rounded-lg border border-dashed border-page-divider bg-page-surface/40 p-3 text-sm text-page-secondary">
                 No models found.
               </div>
             )}
           </div>
 
           {selectedModel && (
-            <div className="rounded-xl border border-page-divider bg-white p-3">
+            <div className="rounded-xl border border-page-divider bg-page-surface/50 p-3">
               <div className="flex min-w-0 items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h3 className="break-words text-sm font-semibold text-page [overflow-wrap:anywhere]">{getModelDisplayName(selectedModel)}</h3>
@@ -1217,7 +1217,7 @@ function InspectorPanel({
                 className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-2 py-2 text-sm font-semibold transition-colors ${
                   active
                     ? 'border-slate-950 bg-slate-950 text-white'
-                    : 'border-page-divider bg-white text-page-secondary hover:bg-page-surface-hover hover:text-page'
+                    : 'border-page-divider bg-page-surface/50 text-page-secondary hover:bg-page-surface-hover hover:text-page'
                 }`}
               >
                 <Icon size={16} />
@@ -1372,7 +1372,7 @@ function InspectorPanel({
               className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-semibold ${
                 codeTab === tab
                   ? 'bg-slate-950 text-white'
-                  : 'border border-page-divider bg-white text-page-secondary hover:bg-page-surface-hover'
+                  : 'border border-page-divider bg-page-surface/50 text-page-secondary hover:bg-page-surface-hover'
               }`}
             >
               {tab === 'curl' ? 'cURL' : tab === 'javascript' ? 'JavaScript' : 'Python'}
@@ -1416,7 +1416,7 @@ function MediaAttachmentGrid({ attachments, mode }) {
     return (
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {media.map((item, index) => (
-          <a key={`${item.src}-${index}`} href={item.src} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-page-divider bg-white">
+          <a key={`${item.src}-${index}`} href={item.src} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-page-divider bg-page-surface">
             <img src={item.src} alt={`Generated result ${index + 1}`} className="aspect-square w-full object-cover transition-transform group-hover:scale-[1.01]" />
           </a>
         ))}
@@ -1454,7 +1454,7 @@ function MediaAttachmentGrid({ attachments, mode }) {
           href={item.src}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-page-divider bg-white px-2.5 py-1.5 text-xs font-semibold text-page-secondary hover:bg-page-surface-hover hover:text-page"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-page-divider bg-page-surface/50 px-2.5 py-1.5 text-xs font-semibold text-page-secondary hover:bg-page-surface-hover hover:text-page"
         >
           <ExternalLink size={13} />
           Open result {media.length > 1 ? index + 1 : ''}
@@ -1465,7 +1465,7 @@ function MediaAttachmentGrid({ attachments, mode }) {
 }
 
 function ChatRunBubble({ endpoint, runState }) {
-  const baseClass = 'min-w-0 max-w-full rounded-xl border border-page-divider bg-white p-3 text-sm leading-6 text-page-secondary sm:max-w-3xl sm:p-4';
+  const baseClass = 'min-w-0 max-w-full rounded-xl border border-page-divider bg-page-surface/50 p-3 text-sm leading-6 text-page-secondary sm:max-w-3xl sm:p-4';
 
   return (
     <div className="flex min-w-0 gap-3">

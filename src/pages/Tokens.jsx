@@ -350,7 +350,7 @@ export default function Tokens() {
                 <button
                   type="button"
                   onClick={() => handleCopy(baseUrl)}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-page-divider bg-white text-page-muted hover:bg-page-surface-hover hover:text-page"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-page-divider bg-page-surface/50 text-page-muted hover:bg-page-surface-hover hover:text-page"
                   aria-label="Copy base URL"
                 >
                   {copiedId === baseUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -393,7 +393,7 @@ export default function Tokens() {
             onClick={openCreateDefault}
             className="group flex w-full items-center gap-3 rounded-2xl border border-page-divider bg-page-surface/40 p-4 text-left transition-colors hover:border-brand-500/40 hover:bg-page-surface"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-page-divider bg-white text-page">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-page-divider bg-page-surface text-page">
               <Plus className="h-5 w-5" />
             </span>
             <span className="min-w-0 flex-1">
@@ -601,7 +601,7 @@ function TokenRow({
               <button
                 type="button"
                 onClick={() => onCopy(keyValue)}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-page-divider bg-white text-page-muted hover:bg-page-surface-hover hover:text-page"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-page-divider bg-page-surface/50 text-page-muted hover:bg-page-surface-hover hover:text-page"
                 aria-label="Copy API key"
               >
                 {copiedId === keyValue ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -695,7 +695,7 @@ function KeyGroupCard({ group, parseTags, onSelect, onViewPricing, t }) {
 
   return (
     <div
-      className={`rounded-xl border border-page-divider bg-white p-4 transition-colors ${
+      className={`rounded-xl border border-page-divider bg-page-surface/50 p-4 transition-colors ${
         isUnavailable
           ? 'opacity-75'
           : 'cursor-pointer hover:border-brand-500/40 hover:bg-page-surface/40 group'

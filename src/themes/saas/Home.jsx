@@ -401,11 +401,11 @@ export default function SaasHome() {
       <CossSection data-home-reveal="section">
         <div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div>
-            <p className="text-sm font-semibold text-slate-700">Boom lanes</p>
-            <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
+            <p className="text-sm font-semibold text-page-link">Boom lanes</p>
+            <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-page sm:text-4xl">
               Token routes grouped by public capability.
             </h2>
-            <p className="mt-4 text-sm leading-6 text-slate-600">
+            <p className="mt-4 text-sm leading-6 text-page-secondary">
               These groups are generated from the same public model data used by pricing, keys, and route pages.
             </p>
             <Link to="/models" className="coss-button-primary mt-7">
@@ -419,7 +419,7 @@ export default function SaasHome() {
                 <CategoryCard key={group.key} group={group} />
               ))
             ) : (
-              <CossCard className="p-5 text-sm text-slate-600 sm:col-span-2">
+              <CossCard className="p-5 text-sm text-page-secondary sm:col-span-2">
                 The catalog is syncing. Model families will appear here when public catalog data is available.
               </CossCard>
             )}
@@ -430,11 +430,11 @@ export default function SaasHome() {
       <CossSection data-home-reveal="section">
         <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div>
-            <p className="text-sm font-semibold text-slate-700">Developer quickstart</p>
-            <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
+            <p className="text-sm font-semibold text-page-link">Developer quickstart</p>
+            <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-page sm:text-4xl">
               Point your app at one OpenAI-compatible base URL.
             </h2>
-            <p className="mt-4 text-sm leading-6 text-slate-600">
+            <p className="mt-4 text-sm leading-6 text-page-secondary">
               Keep the request shape familiar: generate a key, choose a public model id, and send traffic to the API base.
             </p>
             <div className="mt-7 space-y-4">
@@ -536,13 +536,13 @@ function HomeMotionStyles() {
       .saas-home-shimmer {
         position: relative;
         overflow: hidden;
-        background: rgba(226, 232, 240, 0.92);
+        background: rgba(34, 211, 238, 0.14);
       }
       .saas-home-shimmer::after {
         content: "";
         position: absolute;
         inset: 0;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.68), transparent);
+        background: linear-gradient(90deg, transparent, rgba(190, 242, 100, 0.42), rgba(34, 211, 238, 0.32), transparent);
         animation: saas-home-shimmer 1.8s ease-in-out infinite;
       }
       @media (prefers-reduced-motion: reduce) {
@@ -605,7 +605,7 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
               <span className="rounded-md bg-lime-300/15 px-2 py-1 text-lime-100">POST</span>
               <span className="min-w-0 truncate">/chat/completions</span>
             </div>
-            <div className="grid gap-1 text-slate-400 sm:grid-cols-[auto_1fr]">
+            <div className="grid gap-1 text-cyan-100/55 sm:grid-cols-[auto_1fr]">
               <span>model</span>
               <span className="min-w-0 truncate text-slate-100">{firstModelId}</span>
               <span>messages</span>
@@ -633,7 +633,7 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
               <div key={getModelId(model)} className="grid grid-cols-[1fr_auto] items-center gap-3 rounded-lg border border-white/10 bg-slate-900/90 p-3 transition hover:border-cyan-300/30 hover:bg-slate-900">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-white">{getModelDisplayName(model)}</p>
-                  <p className="mt-1 truncate font-mono text-xs text-slate-400">{getModelId(model)}</p>
+                  <p className="mt-1 truncate font-mono text-xs text-cyan-100/55">{getModelId(model)}</p>
                 </div>
                 <span className="rounded-md bg-lime-300/10 px-2 py-1 font-mono text-xs text-lime-100">0{index + 1}</span>
               </div>
@@ -686,18 +686,18 @@ function FlowLine() {
 
 function EndpointCard({ title, value, icon: Icon, link, copyText }) {
   const content = (
-    <div className="group flex min-h-[104px] items-center gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-950/5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white transition group-hover:bg-cyan-700">
+    <div className="group flex min-h-[104px] items-center gap-3 rounded-lg border border-page-divider bg-page-surface/50 p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-500/40 hover:bg-page-surface-hover hover:shadow-xl hover:shadow-brand-500/10">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-500 text-[#0b061f] transition group-hover:bg-brand-400">
         <Icon size={17} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-slate-500">{title}</p>
-        <p className="mt-1 break-all font-mono text-sm font-semibold text-slate-900">{value}</p>
+        <p className="text-xs font-medium text-page-muted">{title}</p>
+        <p className="mt-1 break-all font-mono text-sm font-semibold text-page">{value}</p>
       </div>
       {copyText ? (
         <CopyButton text={copyText} iconOnly className="h-9 w-9 shrink-0 px-0 py-0" />
       ) : (
-        <ArrowUpRight size={17} className="shrink-0 text-slate-400 transition group-hover:text-cyan-700" />
+        <ArrowUpRight size={17} className="shrink-0 text-page-muted transition group-hover:text-page-link" />
       )}
     </div>
   );
@@ -709,12 +709,12 @@ function SectionHeader({ eyebrow, title, text, action }) {
   return (
     <div className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
       <div className="max-w-3xl">
-        <p className="text-sm font-semibold text-cyan-700">{eyebrow}</p>
-        <h2 className="mt-2 text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">{title}</h2>
-        {text && <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{text}</p>}
+        <p className="text-sm font-semibold text-page-link">{eyebrow}</p>
+        <h2 className="mt-2 text-3xl font-semibold leading-tight text-page sm:text-4xl">{title}</h2>
+        {text && <p className="mt-3 max-w-2xl text-sm leading-6 text-page-secondary">{text}</p>}
       </div>
       {action && (
-        <Link to={action.to} className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 transition hover:text-cyan-700">
+        <Link to={action.to} className="inline-flex items-center gap-2 text-sm font-semibold text-page-secondary transition hover:text-page-link">
           {action.label} <ArrowRight size={16} />
         </Link>
       )}
@@ -735,31 +735,31 @@ function FeaturedModelCard({ model }) {
   ].filter(Boolean).slice(0, 3);
 
   return (
-    <article className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-950/[0.08]">
-      <div className="border-b border-slate-100 bg-slate-50/80 p-5">
+    <article className="group flex min-w-0 flex-col overflow-hidden rounded-xl border border-page-divider bg-page-surface/50 shadow-sm transition hover:-translate-y-1 hover:border-brand-500/40 hover:shadow-xl hover:shadow-brand-500/10">
+      <div className="border-b border-page-divider bg-page-surface/40 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold text-slate-950">{getModelDisplayName(model)}</h3>
-            <p className="mt-1 truncate font-mono text-xs text-slate-500">{modelId}</p>
+            <h3 className="truncate text-base font-semibold text-page">{getModelDisplayName(model)}</h3>
+            <p className="mt-1 truncate font-mono text-xs text-page-muted">{modelId}</p>
           </div>
           <AvailabilityBadge model={model} />
         </div>
-        <p className="mt-4 min-h-[48px] text-sm leading-6 text-slate-600">{summary}</p>
+        <p className="mt-4 min-h-[48px] text-sm leading-6 text-page-secondary">{summary}</p>
       </div>
 
       <div className="flex flex-1 flex-col p-5">
         <div className="grid gap-2 sm:grid-cols-3">
           {metricRows.map((metric) => (
-            <div key={metric.label} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-              <p className="text-xs text-slate-500">{metric.label}</p>
-              <p className="mt-1 truncate font-mono text-xs font-semibold text-slate-950">{metric.value}</p>
+            <div key={metric.label} className="rounded-lg border border-page-divider bg-page-surface/50 px-3 py-2">
+              <p className="text-xs text-page-muted">{metric.label}</p>
+              <p className="mt-1 truncate font-mono text-xs font-semibold text-page">{metric.value}</p>
             </div>
           ))}
         </div>
 
         <div className="mt-4 flex flex-wrap gap-1.5">
           {modes.map((mode) => (
-            <span key={mode} className="rounded-full border border-cyan-100 bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold capitalize text-cyan-700">
+            <span key={mode} className="rounded-full border border-cyan-500/25 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-semibold capitalize text-page-info">
               {mode}
             </span>
           ))}
@@ -768,13 +768,13 @@ function FeaturedModelCard({ model }) {
           <ModelBadges model={model} />
         </div>
 
-        <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
-          <p className="mb-2 text-xs font-semibold text-slate-500">Official pricing</p>
+        <div className="mt-5 rounded-lg border border-page-divider bg-page-surface/40 p-3">
+          <p className="mb-2 text-xs font-semibold text-page-muted">Official pricing</p>
           <ModelPrice model={model} />
         </div>
       </div>
 
-      <div className="grid gap-2 border-t border-slate-100 bg-white p-4 sm:grid-cols-2">
+      <div className="grid gap-2 border-t border-page-divider bg-page-surface/30 p-4 sm:grid-cols-2">
         <Link to={getModelRoute(model)} className="coss-button-secondary min-w-0 px-3">
           Details <ArrowRight size={15} />
         </Link>
@@ -790,7 +790,7 @@ function CatalogSyncState() {
   return (
     <div className="grid gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-3 xl:grid-cols-3">
       {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div key={index} className="rounded-xl border border-page-divider bg-page-surface/50 p-5 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-2">
               <div className="saas-home-shimmer h-4 w-36 rounded-full" />
@@ -815,11 +815,11 @@ function GatewayFlowVisual({ models, baseUrl }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
       <div>
-        <p className="text-sm font-semibold text-slate-700">API workbench</p>
-        <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
+        <p className="text-sm font-semibold text-page-link">API workbench</p>
+        <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-page sm:text-4xl">
           One request path, many public model choices.
         </h2>
-        <p className="mt-4 text-sm leading-6 text-slate-600">
+        <p className="mt-4 text-sm leading-6 text-page-secondary">
           Keep the endpoint stable while your app selects the public model id that fits cost, speed, context, or capability needs.
         </p>
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -834,7 +834,7 @@ function GatewayFlowVisual({ models, baseUrl }) {
         <div className="rounded-xl border border-slate-900 bg-slate-950 p-4 shadow-2xl shadow-slate-950/[0.14]">
           <div className="mb-4 flex flex-col gap-2 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-400">Request composer</p>
+              <p className="text-xs font-medium text-cyan-100/55">Request composer</p>
               <p className="mt-1 break-all font-mono text-sm font-semibold text-white">{baseUrl}/chat/completions</p>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-xs font-semibold text-cyan-100">
@@ -847,7 +847,7 @@ function GatewayFlowVisual({ models, baseUrl }) {
 
           <div className="mt-4 grid gap-3 sm:grid-cols-[0.9fr_auto_1.1fr] sm:items-stretch">
             <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs font-medium text-slate-400">Payload</p>
+              <p className="text-xs font-medium text-cyan-100/55">Payload</p>
               <div className="mt-4 space-y-2 font-mono text-xs text-slate-200">
                 <p>{`{`}</p>
                 <p className="pl-3">"model": "{getModelId(rows[0])}",</p>
@@ -861,7 +861,7 @@ function GatewayFlowVisual({ models, baseUrl }) {
             </div>
 
             <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-              <p className="text-xs font-medium text-slate-400">Response shape</p>
+              <p className="text-xs font-medium text-cyan-100/55">Response shape</p>
               <div className="mt-4 space-y-2 font-mono text-xs text-slate-200">
                 <p>choices[0].message.content</p>
                 <p>usage.prompt_tokens</p>
@@ -900,7 +900,7 @@ function ModelFitTable({ models }) {
     <CossTableFrame title="Model fit matrix" meta={`${models.length} featured choices`}>
       <div className="overflow-x-auto">
         <table className="min-w-[680px] w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500">
+          <thead className="border-b border-page-divider bg-page-surface/40 text-xs font-semibold text-page-muted">
             <tr>
               <th className="px-4 py-3">Model</th>
               <th className="px-4 py-3">Category</th>
@@ -908,27 +908,27 @@ function ModelFitTable({ models }) {
               <th className="px-4 py-3 text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-page-divider bg-page-surface/30">
             {models.map((model) => {
               const modelId = getModelId(model);
               return (
-                <tr key={modelId} className="transition hover:bg-slate-50/80">
+                <tr key={modelId} className="transition hover:bg-page-surface-hover">
                   <td className="px-4 py-3">
-                    <p className="font-semibold text-slate-950">{getModelDisplayName(model)}</p>
-                    <p className="mt-1 max-w-[260px] truncate font-mono text-xs text-slate-500">{modelId}</p>
+                    <p className="font-semibold text-page">{getModelDisplayName(model)}</p>
+                    <p className="mt-1 max-w-[260px] truncate font-mono text-xs text-page-muted">{modelId}</p>
                   </td>
-                  <td className="px-4 py-3 text-slate-700">{getModelCategory(model)}</td>
+                  <td className="px-4 py-3 text-page-secondary">{getModelCategory(model)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
                       {getModelTags(model).slice(0, 3).map((tag) => (
-                        <span key={tag} className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                        <span key={tag} className="rounded-full border border-page-divider bg-page-surface/50 px-2 py-0.5 text-[11px] font-medium text-page-secondary">
                           {tag}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link to={`/playground?model=${encodeURIComponent(modelId)}`} className="inline-flex items-center justify-end gap-1.5 text-xs font-semibold text-cyan-700 hover:text-slate-950">
+                    <Link to={`/playground?model=${encodeURIComponent(modelId)}`} className="inline-flex items-center justify-end gap-1.5 text-xs font-semibold text-page-link hover:text-page">
                       Playground <ArrowRight size={14} />
                     </Link>
                   </td>
@@ -944,34 +944,34 @@ function ModelFitTable({ models }) {
 
 function MiniCapability({ icon: Icon, title, text }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-      <Icon size={18} className="text-cyan-700" />
-      <p className="mt-3 font-semibold text-slate-950">{title}</p>
-      <p className="mt-1 text-xs leading-5 text-slate-600">{text}</p>
+    <div className="rounded-lg border border-page-divider bg-page-surface/50 p-4">
+      <Icon size={18} className="text-page-link" />
+      <p className="mt-3 font-semibold text-page">{title}</p>
+      <p className="mt-1 text-xs leading-5 text-page-secondary">{text}</p>
     </div>
   );
 }
 
 function ValueCard({ icon: Icon, title, text, tone }) {
   const toneClasses = {
-    cyan: 'bg-cyan-50 text-cyan-700 border-cyan-100',
-    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    amber: 'bg-amber-50 text-amber-700 border-amber-100',
+    cyan: 'bg-cyan-500/10 text-page-info border-cyan-500/25',
+    emerald: 'bg-emerald-500/10 text-page-success border-emerald-500/25',
+    amber: 'bg-amber-500/10 text-page-warning border-amber-500/25',
     slate: 'bg-slate-950 text-white border-slate-950',
   };
 
   return (
-    <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-950/[0.07]">
+    <div className="group rounded-xl border border-page-divider bg-page-surface/50 p-5 shadow-sm transition hover:-translate-y-1 hover:border-brand-500/40 hover:shadow-xl hover:shadow-brand-500/10">
       <div className="flex items-start justify-between gap-3">
         <span className={`flex h-10 w-10 items-center justify-center rounded-lg border ${toneClasses[tone] || toneClasses.cyan}`}>
           <Icon size={20} />
         </span>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+        <span className="rounded-full border border-page-divider bg-page-surface px-2.5 py-1 text-[11px] font-semibold text-page-muted">
           Built in
         </span>
       </div>
-      <h3 className="mt-4 font-semibold text-slate-950">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+      <h3 className="mt-4 font-semibold text-page">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-page-secondary">{text}</p>
     </div>
   );
 }
@@ -982,20 +982,20 @@ function CategoryCard({ group }) {
   return (
     <Link
       to={`/models?category=${encodeURIComponent(group.name)}`}
-      className="group min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-lg hover:shadow-cyan-950/5"
+      className="group min-w-0 rounded-xl border border-page-divider bg-page-surface/50 p-4 transition hover:-translate-y-0.5 hover:border-brand-500/40 hover:bg-page-surface-hover hover:shadow-lg hover:shadow-brand-500/10"
     >
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-800 shadow-sm transition group-hover:bg-slate-950 group-hover:text-white">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-page-surface text-page-secondary shadow-sm transition group-hover:bg-brand-500 group-hover:text-[#0b061f]">
           <Layers3 size={16} />
         </span>
         <div className="min-w-0">
-          <p className="truncate font-semibold text-slate-950">{group.name}</p>
-          <p className="text-xs text-slate-500">{group.models.length} models</p>
+          <p className="truncate font-semibold text-page">{group.name}</p>
+          <p className="text-xs text-page-muted">{group.models.length} models</p>
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-1.5">
         {previewModels.map((model) => (
-          <span key={getModelId(model)} className="max-w-full truncate rounded-full border border-slate-200 bg-white px-2 py-0.5 font-mono text-[11px] text-slate-500">
+          <span key={getModelId(model)} className="max-w-full truncate rounded-full border border-page-divider bg-page-surface px-2 py-0.5 font-mono text-[11px] text-page-muted">
             {getModelId(model)}
           </span>
         ))}
@@ -1014,13 +1014,13 @@ function UsagePanel({ baseUrl, modelId }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       {rows.map((row) => (
-        <div key={row.label} className="min-w-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div key={row.label} className="min-w-0 rounded-xl border border-page-divider bg-page-surface/50 p-4 shadow-sm">
           <div className="flex items-center justify-between gap-2">
-            <row.icon size={16} className="shrink-0 text-cyan-700" />
+            <row.icon size={16} className="shrink-0 text-page-link" />
             {row.copy && <CopyButton text={row.copy} iconOnly className="h-7 w-7 shrink-0 px-0 py-0" />}
           </div>
-          <p className="mt-3 text-xs text-slate-500">{row.label}</p>
-          <p className="mt-2 break-all font-mono text-sm font-semibold text-slate-950">{row.value}</p>
+          <p className="mt-3 text-xs text-page-muted">{row.label}</p>
+          <p className="mt-2 break-all font-mono text-sm font-semibold text-page">{row.value}</p>
         </div>
       ))}
     </div>
@@ -1029,21 +1029,21 @@ function UsagePanel({ baseUrl, modelId }) {
 
 function ApiBasePanel({ baseUrl }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-page-divider bg-page-surface/50 p-4 shadow-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-slate-950">API base URL</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">
+          <p className="text-sm font-semibold text-page">API base URL</p>
+          <p className="mt-1 text-xs leading-5 text-page-muted">
             Use the API base URL below. {INVALID_WEBSITE_API_BASE_URL} alone is invalid for API calls.
           </p>
         </div>
         <CopyButton text={baseUrl} className="shrink-0" />
       </div>
-      <div className="mt-4 flex min-w-0 flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2 sm:flex-row sm:items-center">
-        <span className="inline-flex shrink-0 items-center justify-center rounded-md bg-slate-950 px-3 py-2 font-mono text-xs font-semibold text-white">
+      <div className="mt-4 flex min-w-0 flex-col gap-2 rounded-lg border border-page-divider bg-page-inset p-2 sm:flex-row sm:items-center">
+        <span className="inline-flex shrink-0 items-center justify-center rounded-md bg-brand-500 px-3 py-2 font-mono text-xs font-semibold text-[#0b061f]">
           base_url
         </span>
-        <code className="min-w-0 flex-1 break-all rounded-md bg-white px-3 py-2 font-mono text-sm text-slate-950">
+        <code className="min-w-0 flex-1 break-all rounded-md bg-page-surface px-3 py-2 font-mono text-sm text-page">
           {baseUrl}
         </code>
       </div>
@@ -1054,12 +1054,12 @@ function ApiBasePanel({ baseUrl }) {
 function QuickStep({ index, title, text }) {
   return (
     <div className="flex gap-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-xs font-semibold text-emerald-700">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-xs font-semibold text-page-success">
         {index}
       </span>
       <div>
-        <p className="font-semibold text-slate-950">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-slate-600">{text}</p>
+        <p className="font-semibold text-page">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-page-secondary">{text}</p>
       </div>
     </div>
   );
@@ -1067,21 +1067,21 @@ function QuickStep({ index, title, text }) {
 
 function PackageCard({ pkg, fmtPlanPrice }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-cyan-200 hover:shadow-xl hover:shadow-cyan-950/[0.07]">
+    <div className="rounded-xl border border-page-divider bg-page-surface/50 p-5 shadow-sm transition hover:-translate-y-1 hover:border-brand-500/40 hover:shadow-xl hover:shadow-brand-500/10">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold text-slate-950">{pkg.name}</h3>
-          <p className="mt-2 min-h-[48px] text-sm leading-6 text-slate-600">{getPackageDescription(pkg)}</p>
+          <h3 className="truncate text-lg font-semibold text-page">{pkg.name}</h3>
+          <p className="mt-2 min-h-[48px] text-sm leading-6 text-page-secondary">{getPackageDescription(pkg)}</p>
         </div>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-100 bg-cyan-50 text-cyan-700">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-500/25 bg-cyan-500/10 text-page-info">
           <Sparkles size={18} />
         </span>
       </div>
       <div className="mt-6 flex flex-wrap items-end gap-2">
-        <span className="text-3xl font-semibold text-slate-950">{fmtPlanPrice(pkg.price, pkg.currency)}</span>
-        <span className="pb-1 text-sm text-slate-500">/{pkg.billing_interval || 'cycle'}</span>
+        <span className="text-3xl font-semibold text-page">{fmtPlanPrice(pkg.price, pkg.currency)}</span>
+        <span className="pb-1 text-sm text-page-muted">/{pkg.billing_interval || 'cycle'}</span>
       </div>
-      <Link to="/packages" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-cyan-700 transition hover:text-slate-950">
+      <Link to="/packages" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-page-link transition hover:text-page">
         View plan <ArrowRight size={15} />
       </Link>
     </div>

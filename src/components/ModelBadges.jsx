@@ -2,10 +2,10 @@ import React from 'react';
 import { getAvailability, getModelTags } from '../utils/modelMeta';
 
 const availabilityClasses = {
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  warning: 'border-amber-200 bg-amber-50 text-amber-700',
-  info: 'border-sky-200 bg-sky-50 text-sky-700',
-  muted: 'border-slate-200 bg-slate-100 text-slate-600',
+  success: 'border-emerald-500/25 bg-emerald-500/10 text-page-success',
+  warning: 'border-amber-500/25 bg-amber-500/10 text-page-warning',
+  info: 'border-sky-500/25 bg-sky-500/10 text-page-info',
+  muted: 'border-page-divider bg-page-surface text-page-secondary',
 };
 
 const dotClasses = {
@@ -29,7 +29,7 @@ export default function ModelBadges({ model, limit = 4 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
       {getModelTags(model).slice(0, limit).map((tag) => (
-        <span key={tag} className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600">
+        <span key={tag} className="rounded-full border border-page-divider bg-page-surface px-2 py-0.5 text-[11px] font-medium text-page-secondary">
           {tag}
         </span>
       ))}

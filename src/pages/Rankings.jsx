@@ -114,7 +114,7 @@ export default function Rankings() {
               ))}
             </CossSelect>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-page-muted">
             <span className="inline-flex items-center gap-2">
               <BarChart3 size={14} />
               {filteredModels.length} models shown
@@ -130,7 +130,7 @@ export default function Rankings() {
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[800px] text-sm">
               <thead>
-                <tr className="border-b border-slate-200 bg-white text-left text-slate-500">
+                <tr className="border-b border-page-divider bg-page-surface/40 text-left text-page-muted">
                   <th className="px-5 py-3 font-medium">#</th>
                   <th className="px-5 py-3 font-medium">Model</th>
                   <th className="px-5 py-3 font-medium">Category</th>
@@ -144,17 +144,17 @@ export default function Rankings() {
               ) : (
                 <tbody>
                   {filteredModels.map((model, index) => (
-                    <tr key={getModelId(model)} className="border-b border-slate-100 align-middle last:border-0 hover:bg-slate-50/80">
-                      <td className="px-5 py-4 font-mono text-slate-500">{index + 1}</td>
+                    <tr key={getModelId(model)} className="border-b border-page-divider align-middle last:border-0 hover:bg-page-surface-hover">
+                      <td className="px-5 py-4 font-mono text-page-muted">{index + 1}</td>
                       <td className="px-5 py-4">
-                        <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-slate-700">
+                        <Link to={getModelRoute(model)} className="font-semibold text-page hover:text-page-link">
                           {getModelDisplayName(model)}
                         </Link>
-                        <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                        <p className="mt-1 truncate font-mono text-xs text-page-muted">{getModelId(model)}</p>
                       </td>
-                      <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
-                      <td className="px-5 py-4 text-right font-mono text-slate-700">{formatTokenUsageValue(model)}</td>
-                      <td className="px-5 py-4 text-right font-mono text-slate-700">{formatCompactNumber(getRequestCount(model))}</td>
+                      <td className="px-5 py-4 text-page-secondary">{getModelCategory(model)}</td>
+                      <td className="px-5 py-4 text-right font-mono text-page-secondary">{formatTokenUsageValue(model)}</td>
+                      <td className="px-5 py-4 text-right font-mono text-page-secondary">{formatCompactNumber(getRequestCount(model))}</td>
                       <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
                     </tr>
                   ))}
@@ -162,32 +162,32 @@ export default function Rankings() {
               )}
             </table>
           </div>
-          <div className="divide-y divide-slate-100 md:hidden">
+          <div className="divide-y divide-page-divider md:hidden">
             {loading ? (
               Array.from({ length: 5 }, (_, index) => (
                 <div key={index} className="p-4">
-                  <div className="h-4 w-44 animate-pulse rounded bg-slate-200" />
-                  <div className="mt-3 h-3 w-full animate-pulse rounded bg-slate-100" />
+                  <div className="h-4 w-44 animate-pulse rounded bg-page-surface-hover" />
+                  <div className="mt-3 h-3 w-full animate-pulse rounded bg-page-surface" />
                 </div>
               ))
             ) : (
               filteredModels.map((model, index) => (
-                <Link key={getModelId(model)} to={getModelRoute(model)} className="block p-4 hover:bg-slate-50">
+                <Link key={getModelId(model)} to={getModelRoute(model)} className="block p-4 hover:bg-page-surface-hover">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-slate-500">#{index + 1}</span>
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                        <span className="font-mono text-xs text-page-muted">#{index + 1}</span>
+                        <span className="rounded-full border border-page-divider bg-page-surface px-2 py-0.5 text-[11px] font-semibold text-page-secondary">
                           {getModelCategory(model)}
                         </span>
                       </div>
-                      <p className="mt-2 font-semibold text-slate-950">{getModelDisplayName(model)}</p>
-                      <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                      <p className="mt-2 font-semibold text-page">{getModelDisplayName(model)}</p>
+                      <p className="mt-1 break-all font-mono text-xs text-page-muted">{getModelId(model)}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Marketplace tokens</p>
-                      <p className="mt-1 font-mono text-xs text-slate-700">{formatTokenUsageValue(model)}</p>
-                      <p className="mt-1 font-mono text-xs text-slate-500">{formatCompactNumber(getRequestCount(model))} requests</p>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-page-muted">Marketplace tokens</p>
+                      <p className="mt-1 font-mono text-xs text-page-secondary">{formatTokenUsageValue(model)}</p>
+                      <p className="mt-1 font-mono text-xs text-page-muted">{formatCompactNumber(getRequestCount(model))} requests</p>
                       <div className="mt-2"><ModelPrice model={model} compact /></div>
                     </div>
                   </div>
@@ -196,7 +196,7 @@ export default function Rankings() {
             )}
           </div>
           {!loading && filteredModels.length === 0 && (
-            <CossCard className="m-4 p-8 text-center text-sm text-slate-600">
+            <CossCard className="m-4 p-8 text-center text-sm text-page-secondary">
               No ranked models match the current search.
             </CossCard>
           )}
@@ -210,13 +210,13 @@ function RankingSkeletonRows() {
   return (
     <tbody>
       {Array.from({ length: 10 }, (_, index) => (
-        <tr key={index} className="border-b border-slate-100 last:border-0">
-          <td className="px-5 py-4"><div className="h-4 w-6 animate-pulse rounded bg-slate-100" /></td>
-          <td className="px-5 py-4"><div className="h-4 w-56 animate-pulse rounded bg-slate-200" /></td>
-          <td className="px-5 py-4"><div className="h-4 w-20 animate-pulse rounded bg-slate-100" /></td>
-          <td className="px-5 py-4"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-slate-100" /></td>
-          <td className="px-5 py-4"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-slate-100" /></td>
-          <td className="px-5 py-4"><div className="ml-auto h-4 w-24 animate-pulse rounded bg-slate-100" /></td>
+        <tr key={index} className="border-b border-page-divider last:border-0">
+          <td className="px-5 py-4"><div className="h-4 w-6 animate-pulse rounded bg-page-surface" /></td>
+          <td className="px-5 py-4"><div className="h-4 w-56 animate-pulse rounded bg-page-surface-hover" /></td>
+          <td className="px-5 py-4"><div className="h-4 w-20 animate-pulse rounded bg-page-surface" /></td>
+          <td className="px-5 py-4"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-page-surface" /></td>
+          <td className="px-5 py-4"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-page-surface" /></td>
+          <td className="px-5 py-4"><div className="ml-auto h-4 w-24 animate-pulse rounded bg-page-surface" /></td>
         </tr>
       ))}
     </tbody>
