@@ -263,7 +263,7 @@ createServer(async (req, res) => {
     });
   }
 
-  if (url.pathname.startsWith('/api/site/')) {
+  if (url.pathname.startsWith('/api/site/') || (url.pathname === '/webhook' && req.method === 'POST')) {
     return handleSiteSaasRequest(req, res);
   }
 

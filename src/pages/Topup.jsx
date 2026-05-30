@@ -77,6 +77,12 @@ function findCompatibleCreemProduct(products, amount) {
 
 function openPendingPaymentWindow() {
   if (typeof window === 'undefined') return null;
+  const userAgent = navigator.userAgent || '';
+  const useSameTab = (
+    /Android|iPhone|iPad|iPod|Mobile|MicroMessenger|FBAN|FBAV|Instagram/i.test(userAgent) ||
+    (navigator.maxTouchPoints > 1 && window.matchMedia?.('(max-width: 768px)').matches)
+  );
+  if (useSameTab) return null;
   const opened = window.open('', '_blank');
   if (!opened) return null;
   try {
@@ -116,7 +122,7 @@ function openPaymentUrl(paymentWindow, url) {
       // Fall back to same-tab navigation below.
     }
   }
-  window.location.href = url;
+  window.location.assign(url);
 }
 
 function closePendingPaymentWindow(paymentWindow) {

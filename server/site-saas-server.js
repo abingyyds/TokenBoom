@@ -68,6 +68,9 @@ async function saveStore(store) {
 function getConfig(store) {
   const creemApiKeyEnv = String(process.env.CREEM_API_KEY || '').trim();
   const creemApiKeyConfig = String(store.config.creem_api_key || '').trim();
+  const creemWebhookSecretEnv = String(process.env.CREEM_WEBHOOK_SECRET || '').trim();
+  const creemWebhookSecretConfig = String(store.config.creem_webhook_secret || '').trim();
+  const creemWebhookSecrets = [...new Set([creemWebhookSecretEnv, creemWebhookSecretConfig].filter(Boolean))];
   const hasValidCreemApiKeyEnv = Boolean(creemApiKeyEnv) && !invalidHeaderValueDetail(creemApiKeyEnv);
   const creemApiKey = hasValidCreemApiKeyEnv ? creemApiKeyEnv : creemApiKeyConfig;
   const creemApiKeySource = hasValidCreemApiKeyEnv
@@ -82,7 +85,8 @@ function getConfig(store) {
     creem_api_key: creemApiKey,
     creem_api_base_url: process.env.CREEM_API_BASE_URL || store.config.creem_api_base_url || 'https://api.creem.io',
     creem_checkout_path: process.env.CREEM_CHECKOUT_PATH || store.config.creem_checkout_path || '/v1/checkouts',
-    creem_webhook_secret: process.env.CREEM_WEBHOOK_SECRET || store.config.creem_webhook_secret || '',
+    creem_webhook_secret: creemWebhookSecretEnv || creemWebhookSecretConfig || '',
+    creem_webhook_secrets: creemWebhookSecrets,
     creem_topup_bridge_enabled: process.env.CREEM_TOPUP_BRIDGE_ENABLED !== undefined
       ? process.env.CREEM_TOPUP_BRIDGE_ENABLED === 'true'
       : store.config.creem_topup_bridge_enabled === true,
@@ -94,6 +98,11 @@ function getConfig(store) {
     subrouter_site_host: process.env.SUBROUTER_SITE_HOST || store.config.subrouter_site_host || '',
     _sources: {
       creem_api_key: creemApiKeySource,
+      creem_webhook_secret: creemWebhookSecretEnv
+        ? (creemWebhookSecretConfig && creemWebhookSecretConfig !== creemWebhookSecretEnv
+          ? 'environment variable CREEM_WEBHOOK_SECRET + site admin config'
+          : 'environment variable CREEM_WEBHOOK_SECRET')
+        : (creemWebhookSecretConfig ? 'site admin config' : 'unset'),
     },
   };
 }
@@ -246,6 +255,15 @@ function parseJson(raw) {
   return JSON.parse(raw.toString('utf8'));
 }
 
+function hasSuccessfulWebhookEvent(store, eventId) {
+  if (!eventId) return false;
+  return store.events.some((event) => (
+    (event.type === 'webhook_processed' || event.type === 'bridge_webhook_processed') &&
+    event.detail?.event_id === eventId &&
+    event.detail?.success === true
+  ));
+}
+
 function requestJson(url, { method = 'GET', headers = {}, body = '' } = {}) {
   return new Promise((resolve, reject) => {
     const target = new URL(url);
@@ -395,6 +413,10 @@ function publicState(store) {
     config: {
       creem_api_key_configured: Boolean(config.creem_api_key),
       creem_webhook_secret_configured: Boolean(config.creem_webhook_secret),
+      creem_webhook_secret_source: config._sources?.creem_webhook_secret || 'unset',
+      creem_webhook_secret_candidates: Array.isArray(config.creem_webhook_secrets)
+        ? config.creem_webhook_secrets.length
+        : (config.creem_webhook_secret ? 1 : 0),
       creem_topup_bridge_secret_configured: Boolean(config.creem_topup_bridge_secret),
       subrouter_internal_token_configured: Boolean(config.subrouter_internal_token),
       creem_api_key_source: config._sources?.creem_api_key || 'unset',
@@ -690,8 +712,17 @@ function verifyCreemRedirectSignature(params, apiKey) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-function verifyWebhook(rawBody, req, secret) {
-  if (!secret) return true;
+function timingSafeEqualText(left, right) {
+  const a = Buffer.from(String(left || ''));
+  const b = Buffer.from(String(right || ''));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function verifyWebhook(rawBody, req, secrets) {
+  const secretCandidates = (Array.isArray(secrets) ? secrets : [secrets])
+    .map((secret) => String(secret || '').trim())
+    .filter(Boolean);
+  if (!secretCandidates.length) return true;
   const header = String(
     req.headers['creem-signature'] ||
     req.headers['x-creem-signature'] ||
@@ -700,15 +731,14 @@ function verifyWebhook(rawBody, req, secret) {
     '',
   );
   if (!header) return false;
-  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
   const candidates = header
     .split(',')
-    .map((part) => part.trim().replace(/^sha256=/i, '').replace(/^v1=/i, ''))
-    .filter(Boolean);
-  return candidates.some((candidate) => {
-    const a = Buffer.from(candidate);
-    const b = Buffer.from(expected);
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
+    .map((part) => part.trim().replace(/^sha256=/i, '').replace(/^v1=/i, '').replace(/\s+/g, ''))
+    .filter((part) => /^[a-f0-9]{64}$/i.test(part));
+  if (!candidates.length) return false;
+  return secretCandidates.some((secret) => {
+    const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+    return candidates.some((candidate) => timingSafeEqualText(candidate.toLowerCase(), expected));
   });
 }
 
@@ -728,7 +758,7 @@ function getMetadata(event) {
 }
 
 function isPaidEvent(event) {
-  const type = String(event.eventType || event.event_type || event.type || '').toLowerCase();
+  const type = eventType(event);
   const object = event.data?.object || event.object || {};
   const order = event.order || event.data?.order || object.order || {};
   const checkout = event.checkout || event.data?.checkout || object.checkout || {};
@@ -761,6 +791,72 @@ function isPaidEvent(event) {
     status === 'success';
 }
 
+function eventType(event) {
+  return String(event.eventType || event.event_type || event.type || '').toLowerCase();
+}
+
+function timestampMs(value) {
+  if (!value) return 0;
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric > 100000000000 ? numeric : numeric * 1000;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function eventCreatedAtMs(event) {
+  return timestampMs(event.created_at || event.createdAt || event.data?.created_at || event.object?.created_at || event.data?.object?.created_at);
+}
+
+function subscriptionPaidEvent(event) {
+  return eventType(event) === 'subscription.paid';
+}
+
+function paymentFingerprints(event) {
+  const object = event.data?.object || event.object || {};
+  const order = event.order || event.data?.order || object.order || event.data?.object?.order || {};
+  const checkout = event.checkout || event.data?.checkout || object.checkout || event.data?.object?.checkout || {};
+  const subscription = event.subscription || event.data?.subscription || object.subscription || event.data?.object?.subscription || {};
+  const subscriptionId = stringId(subscription) || stringId(event.subscription_id || event.data?.subscription_id || object.subscription_id);
+  const periodEnd = periodEndFromEvent(event);
+  const values = [
+    order.transaction && `transaction:${order.transaction}`,
+    order.id && `order:${order.id}`,
+    checkout.id && `checkout:${checkout.id}`,
+    object.id && object.object === 'checkout' && `checkout:${object.id}`,
+    subscriptionId && periodEnd && `subscription_period:${subscriptionId}:${periodEnd}`,
+    event.id && `event:${event.id}`,
+    event.event_id && `event:${event.event_id}`,
+  ];
+  return [...new Set(values.filter(Boolean).map(String))];
+}
+
+function rememberPaymentFingerprints(order, event) {
+  const fingerprints = paymentFingerprints(event);
+  if (!fingerprints.length) return;
+  const existing = Array.isArray(order.creem_payment_fingerprints)
+    ? order.creem_payment_fingerprints
+    : [];
+  order.creem_payment_fingerprints = [...new Set([...existing, ...fingerprints])].slice(-30);
+}
+
+function hasKnownPaymentFingerprint(order, event) {
+  const existing = Array.isArray(order?.creem_payment_fingerprints)
+    ? order.creem_payment_fingerprints
+    : [];
+  if (!existing.length) return false;
+  return paymentFingerprints(event).some((fingerprint) => existing.includes(fingerprint));
+}
+
+function likelyInitialSubscriptionPayment(order, event) {
+  if (hasKnownPaymentFingerprint(order, event)) return true;
+  const createdAt = timestampMs(order?.created_at);
+  const eventAt = eventCreatedAtMs(event);
+  if (!createdAt || !eventAt) return false;
+  return eventAt <= createdAt + 24 * 60 * 60 * 1000;
+}
+
 function webhookOrderCandidates(event) {
   const metadata = getMetadata(event);
   return [
@@ -788,10 +884,17 @@ function webhookOrderCandidates(event) {
 
 function getWebhookOrder(store, event) {
   const candidates = webhookOrderCandidates(event);
-  return store.orders.find((order) => (
+  const matchedOrder = store.orders.find((order) => (
     candidates.includes(order.id) ||
     (order.checkout_id && candidates.includes(String(order.checkout_id)))
-  )) || null;
+  ));
+  if (matchedOrder) return matchedOrder;
+
+  const subscriptionId = getSubscriptionId(event, null);
+  if (!subscriptionId) return null;
+  const subscription = store.subscriptions.find((item) => String(item.subscription_id || '') === String(subscriptionId));
+  if (!subscription?.order_id) return null;
+  return store.orders.find((order) => String(order.id) === String(subscription.order_id)) || null;
 }
 
 function orderActivationEvent(order) {
@@ -806,6 +909,48 @@ function orderActivationEvent(order) {
       subrouter_user_id: order.user_id,
     },
   };
+}
+
+function orderForSubscriptionPayment(store, order, event) {
+  if (!order || order.source === 'creem_topup_bridge') return order;
+  if (!subscriptionPaidEvent(event)) return order;
+  if (String(order.status || '').toLowerCase() !== 'activated') return order;
+  if (likelyInitialSubscriptionPayment(order, event)) return order;
+
+  const subscriptionId = getSubscriptionId(event, order) || '';
+  const fingerprints = paymentFingerprints(event);
+  const existing = store.orders.find((item) => (
+    item.parent_order_id === order.id &&
+    item.source === 'creem_subscription_renewal' &&
+    fingerprints.some((fingerprint) => (
+      Array.isArray(item.creem_payment_fingerprints) &&
+      item.creem_payment_fingerprints.includes(fingerprint)
+    ))
+  ));
+  if (existing) return existing;
+
+  const renewalOrder = {
+    id: id('ren'),
+    source: 'creem_subscription_renewal',
+    parent_order_id: order.id,
+    subscription_id: subscriptionId,
+    user_id: order.user_id,
+    package_id: order.package_id,
+    package_name: order.package_name || '',
+    creem_product_id: order.creem_product_id || '',
+    status: 'pending',
+    created_at: now(),
+    creem_payment_fingerprints: fingerprints,
+  };
+  store.orders.push(renewalOrder);
+  pushEvent(store, 'subscription_renewal_order_created', {
+    order_id: renewalOrder.id,
+    parent_order_id: order.id,
+    package_id: renewalOrder.package_id,
+    user_id: renewalOrder.user_id,
+    subscription_id: subscriptionId,
+  });
+  return renewalOrder;
 }
 
 function findSyncOrder(store, { orderId, checkoutId, requestId, userId }) {
@@ -1013,6 +1158,7 @@ async function activateSubscriptionCycle(store, { order, event }) {
   if (!order) return { success: false, message: 'Order not found' };
   const currentStatus = String(order.status || '').toLowerCase();
   if (currentStatus === 'activated') {
+    rememberPaymentFingerprints(order, event);
     return { success: true, already_activated: true };
   }
   if (currentStatus === 'package_subscribe_failed') {
@@ -1083,6 +1229,8 @@ async function activateSubscriptionCycle(store, { order, event }) {
       });
       order.status = 'activated';
       order.error = '';
+      order.completed_at = order.completed_at || now();
+      rememberPaymentFingerprints(order, event);
       order.updated_at = now();
       pushEvent(store, 'package_subscribed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, source: 'internal_saas_activate' });
       return { success: true };
@@ -1629,11 +1777,15 @@ export async function handleSiteSaasRequest(req, res) {
       }
     }
 
-    if (url.pathname === '/api/site/saas/webhooks/creem' && req.method === 'POST') {
+    if ((url.pathname === '/api/site/saas/webhooks/creem' || url.pathname === '/webhook') && req.method === 'POST') {
       const config = getConfig(store);
-      if (!verifyWebhook(raw, req, config.creem_webhook_secret)) {
+      if (!verifyWebhook(raw, req, config.creem_webhook_secrets || config.creem_webhook_secret)) {
         pushEvent(store, 'webhook_signature_failed', {
           type: body.type || body.eventType || body.event_type,
+          secret_source: config._sources?.creem_webhook_secret || 'unset',
+          secret_candidates: Array.isArray(config.creem_webhook_secrets)
+            ? config.creem_webhook_secrets.length
+            : (config.creem_webhook_secret ? 1 : 0),
           headers: {
             creem_signature: Boolean(req.headers['creem-signature']),
             x_creem_signature: Boolean(req.headers['x-creem-signature']),
@@ -1645,7 +1797,7 @@ export async function handleSiteSaasRequest(req, res) {
         return sendJson(res, 401, { success: false, message: 'Invalid webhook signature' });
       }
       const eventId = body.id || body.event_id || body.data?.id || id('wh');
-      if (store.events.some((event) => event.type === 'webhook_processed' && event.detail?.event_id === eventId)) {
+      if (hasSuccessfulWebhookEvent(store, eventId)) {
         return sendJson(res, 200, { success: true, data: { duplicate: true } });
       }
       if (!isPaidEvent(body)) {
@@ -1683,6 +1835,7 @@ export async function handleSiteSaasRequest(req, res) {
         await saveStore(store);
         return sendJson(res, result.success ? 200 : 202, { success: result.success, data: result });
       }
+      order = orderForSubscriptionPayment(store, order, body);
       const result = await activateSubscriptionCycle(store, { order, event: body });
       pushEvent(store, 'webhook_processed', { event_id: eventId, order_id: order.id, success: result.success });
       await saveStore(store);
