@@ -20,10 +20,12 @@ const defaultStore = {
     creem_api_base_url: 'https://api.creem.io',
     creem_checkout_path: '/v1/checkouts',
     creem_webhook_secret: '',
+    creem_topup_bridge_enabled: false,
+    creem_topup_bridge_secret: '',
     subrouter_base_url: 'http://localhost:3000',
     public_api_base_url: '',
     subrouter_internal_token: '',
-    site_public_url: '',
+    site_public_url: 'https://subrouter.com',
     package_mappings: {},
   },
   codes: [],
@@ -81,10 +83,14 @@ function getConfig(store) {
     creem_api_base_url: process.env.CREEM_API_BASE_URL || store.config.creem_api_base_url || 'https://api.creem.io',
     creem_checkout_path: process.env.CREEM_CHECKOUT_PATH || store.config.creem_checkout_path || '/v1/checkouts',
     creem_webhook_secret: process.env.CREEM_WEBHOOK_SECRET || store.config.creem_webhook_secret || '',
+    creem_topup_bridge_enabled: process.env.CREEM_TOPUP_BRIDGE_ENABLED !== undefined
+      ? process.env.CREEM_TOPUP_BRIDGE_ENABLED === 'true'
+      : store.config.creem_topup_bridge_enabled === true,
+    creem_topup_bridge_secret: process.env.CREEM_TOPUP_BRIDGE_SECRET || store.config.creem_topup_bridge_secret || '',
     subrouter_base_url: process.env.SUBROUTER_API_BASE || store.config.subrouter_base_url || 'http://localhost:3000',
     public_api_base_url: process.env.PUBLIC_API_BASE_URL || process.env.VITE_PUBLIC_API_BASE_URL || store.config.public_api_base_url || '',
-    subrouter_internal_token: process.env.SUBROUTER_INTERNAL_TOKEN || store.config.subrouter_internal_token || '',
-    site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || '',
+    subrouter_internal_token: process.env.SUBROUTER_SAAS_ACTIVATION_TOKEN || process.env.SUBROUTER_INTERNAL_TOKEN || store.config.subrouter_internal_token || '',
+    site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || 'https://subrouter.com',
     subrouter_site_host: process.env.SUBROUTER_SITE_HOST || store.config.subrouter_site_host || '',
     _sources: {
       creem_api_key: creemApiKeySource,
@@ -96,9 +102,16 @@ function adminToken() {
   return String(process.env.SITE_ADMIN_TOKEN || '').trim();
 }
 
+function isLocalAdminRequest(req) {
+  const remoteAddress = String(req.socket?.remoteAddress || '').toLowerCase();
+  const host = String(req.headers.host || '').toLowerCase().split(':')[0];
+  return ['127.0.0.1', '::1', '::ffff:127.0.0.1', 'localhost'].includes(remoteAddress) ||
+    ['127.0.0.1', '::1', 'localhost'].includes(host);
+}
+
 function requireAdmin(req) {
   const token = adminToken();
-  if (!token) return true;
+  if (!token) return isLocalAdminRequest(req);
   const got = String(req.headers['x-site-admin-token'] || req.headers.authorization?.replace(/^Bearer\s+/i, '') || '').trim();
   return got === token;
 }
@@ -371,7 +384,7 @@ function publicState(store) {
     const stat = statsByPackage.get(pkg) || { package_id: pkg, total: 0, available: 0, reserved: 0, balance_redeemed: 0, subscribed: 0, failed: 0 };
     stat.total += 1;
     if (code.status === 'available') stat.available += 1;
-    if (code.status === 'reserved') stat.reserved += 1;
+    if (code.status === 'reserved' || code.status === 'activation_pending') stat.reserved += 1;
     if (code.status === 'balance_redeemed') stat.balance_redeemed += 1;
     if (code.status === 'subscribed') stat.subscribed += 1;
     if (code.status === 'redeem_failed' || code.status === 'subscribe_failed') stat.failed += 1;
@@ -382,12 +395,16 @@ function publicState(store) {
     config: {
       creem_api_key_configured: Boolean(config.creem_api_key),
       creem_webhook_secret_configured: Boolean(config.creem_webhook_secret),
+      creem_topup_bridge_secret_configured: Boolean(config.creem_topup_bridge_secret),
       subrouter_internal_token_configured: Boolean(config.subrouter_internal_token),
       creem_api_key_source: config._sources?.creem_api_key || 'unset',
+      creem_topup_bridge_enabled: Boolean(config.creem_topup_bridge_enabled),
       creem_api_base_url: config.creem_api_base_url,
       creem_checkout_path: config.creem_checkout_path,
       subrouter_base_url: config.subrouter_base_url,
       public_api_base_url: config.public_api_base_url,
+      site_public_url: config.site_public_url,
+      subrouter_site_host: config.subrouter_site_host,
       package_mappings: store.config.package_mappings || {},
     },
     code_stats: [...statsByPackage.values()],
@@ -429,11 +446,136 @@ function stringId(value) {
   return String(value || '').trim();
 }
 
-function checkoutPayload({ order, productId, returnUrl }) {
-  return {
+const creemBridgeSignatureKeys = [
+  'amount',
+  'callback_url',
+  'currency',
+  'email',
+  'expires',
+  'mode',
+  'product_id',
+  'product_name',
+  'quota',
+  'reference_id',
+  'return_url',
+  'units',
+  'user_id',
+  'username',
+];
+
+function signHmac(payload, secret) {
+  return crypto.createHmac('sha256', secret).update(payload).digest('hex');
+}
+
+function verifyFixedHmacSignature(payload, signature, secret) {
+  if (!secret || !signature) return false;
+  const expected = signHmac(payload, secret);
+  const candidates = String(signature)
+    .split(',')
+    .map((part) => part.trim().replace(/^sha256=/i, '').replace(/^v1=/i, ''))
+    .filter(Boolean);
+  return candidates.some((candidate) => {
+    const a = Buffer.from(candidate);
+    const b = Buffer.from(expected);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  });
+}
+
+function bridgeSignaturePayload(params) {
+  return creemBridgeSignatureKeys
+    .map((key) => `${key}=${String(params.get(key) || '')}`)
+    .join('\n');
+}
+
+function verifyBridgeStartParams(params, secret) {
+  const expires = Number(params.get('expires') || 0);
+  if (!Number.isFinite(expires) || expires < Math.floor(Date.now() / 1000)) {
+    return { ok: false, message: 'Bridge link expired' };
+  }
+  if (params.get('mode') !== 'topup') {
+    return { ok: false, message: 'Unsupported bridge mode' };
+  }
+  const signature = params.get('signature') || '';
+  if (!verifyFixedHmacSignature(bridgeSignaturePayload(params), signature, secret)) {
+    return { ok: false, message: 'Invalid bridge signature' };
+  }
+  return { ok: true };
+}
+
+function normalizeAbsoluteHttpUrl(raw) {
+  try {
+    const target = new URL(String(raw || '').trim());
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') return '';
+    return target.toString();
+  } catch {
+    return '';
+  }
+}
+
+function publicSiteOrigin(req, config) {
+  if (config.site_public_url) {
+    try {
+      return new URL(config.site_public_url).origin;
+    } catch {
+      // Fall through to request host.
+    }
+  }
+  const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || (req.socket.encrypted ? 'https' : 'http');
+  return `${proto}://${req.headers.host || 'localhost'}`;
+}
+
+function appendBridgeReturnStatus(rawUrl, status) {
+  const normalized = normalizeAbsoluteHttpUrl(rawUrl);
+  if (!normalized) return '';
+  const target = new URL(normalized);
+  if (target.searchParams.has('checkout_status')) {
+    target.searchParams.set('checkout_status', status === 'success' ? 'success' : 'cancelled');
+  } else if (target.searchParams.has('status')) {
+    target.searchParams.set('status', status === 'success' ? 'success' : 'cancelled');
+  } else if (target.searchParams.has('payment')) {
+    target.searchParams.set('payment', status === 'success' ? 'return' : 'cancel');
+  } else {
+    target.searchParams.set('payment', status === 'success' ? 'return' : 'cancel');
+  }
+  return target.toString();
+}
+
+function htmlEscape(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function scriptJson(value) {
+  return JSON.stringify(value || '').replace(/</g, '\\u003c');
+}
+
+function sendBridgeReturnPage(res, targetUrl) {
+  const safeUrl = normalizeAbsoluteHttpUrl(targetUrl) || 'https://subrouter.com';
+  const body = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="0;url=${htmlEscape(safeUrl)}">
+  <title>Payment return</title>
+</head>
+<body>
+  <p>Returning to the original site. If you are not redirected automatically, use <a href="${htmlEscape(safeUrl)}">this link</a>.</p>
+  <script>window.location.replace(${scriptJson(safeUrl)});</script>
+</body>
+</html>`;
+  return sendRaw(res, 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }, body);
+}
+
+function checkoutPayload({ order, productId, returnUrl, units = 1 }) {
+  const payload = {
     product_id: productId,
     request_id: order.id,
-    units: 1,
+    units,
     success_url: returnUrl,
     metadata: {
       order_id: order.id,
@@ -441,6 +583,10 @@ function checkoutPayload({ order, productId, returnUrl }) {
       subrouter_user_id: order.user_id,
     },
   };
+  if (order.email) {
+    payload.customer = { email: order.email };
+  }
+  return payload;
 }
 
 function checkoutReturnUrl(rawReturnUrl, order, req) {
@@ -460,7 +606,7 @@ function checkoutReturnUrl(rawReturnUrl, order, req) {
   }
 }
 
-async function createCreemCheckout(store, { order, productId, returnUrl }) {
+async function createCreemCheckout(store, { order, productId, returnUrl, units = 1 }) {
   const config = getConfig(store);
   const creemApiKey = requireHeaderSafeSecret(
     'Creem API key',
@@ -468,7 +614,7 @@ async function createCreemCheckout(store, { order, productId, returnUrl }) {
     config._sources?.creem_api_key || 'configuration',
   );
   const url = new URL(config.creem_checkout_path, config.creem_api_base_url).toString();
-  const payload = checkoutPayload({ order, productId, returnUrl });
+  const payload = checkoutPayload({ order, productId, returnUrl, units });
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -678,7 +824,7 @@ function findSyncOrder(store, { orderId, checkoutId, requestId, userId }) {
   return store.orders
     .filter((order) => (
       (!userId || String(order.user_id) === String(userId)) &&
-      ['pending', 'checkout_created', 'needs_code'].includes(String(order.status || '').toLowerCase())
+      ['pending', 'checkout_created', 'needs_code', 'activation_failed', 'activation_pending'].includes(String(order.status || '').toLowerCase())
     ))
     .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())[0] || null;
 }
@@ -772,7 +918,7 @@ async function syncPendingPaidCheckouts(store, userId) {
     .filter((order) => (
       String(order.user_id) === String(userId) &&
       String(order.checkout_id || '').trim() &&
-      ['pending', 'checkout_created', 'needs_code'].includes(String(order.status || '').toLowerCase())
+      ['pending', 'checkout_created', 'needs_code', 'activation_failed', 'activation_pending'].includes(String(order.status || '').toLowerCase())
     ))
     .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
     .slice(0, 3);
@@ -824,50 +970,53 @@ function periodEndFromEvent(event) {
   return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 }
 
-async function redeemSubRouterCode(store, { userId, code }) {
+async function activateSubRouterSaasPackage(store, { userId, packageId, code, orderId }) {
   const config = getConfig(store);
-  const url = subRouterRequestUrl('/api/dist/topup/redeem', config);
-  const headers = {
-    'Content-Type': 'application/json',
-    'New-Api-User': String(userId),
-    ...siteForwardHeaders(config),
-  };
-  if (config.subrouter_internal_token) {
-    headers.Authorization = `Bearer ${config.subrouter_internal_token}`;
+  if (!config.subrouter_internal_token) {
+    return { success: false, skipped: true, message: 'SubRouter SaaS activation token is not configured' };
   }
-  const response = await requestJson(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ key: code }),
-  });
-  const success = response.ok && (response.data.success === true || response.data.message === 'success');
-  return { success, status: response.status, data: response.data };
-}
-
-async function subscribeSubRouterPackage(store, { userId, packageId }) {
-  const config = getConfig(store);
-  const url = subRouterRequestUrl('/api/dist/package/subscribe', config);
-  const headers = {
-    'Content-Type': 'application/json',
-    'New-Api-User': String(userId),
-    ...siteForwardHeaders(config),
-  };
-  if (config.subrouter_internal_token) {
-    headers.Authorization = `Bearer ${config.subrouter_internal_token}`;
+  const url = subRouterRequestUrl('/api/dist/internal/saas/activate', config);
+  try {
+    const response = await requestJson(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.subrouter_internal_token}`,
+        'X-SubRouter-Saas-Activation-Token': config.subrouter_internal_token,
+        ...siteForwardHeaders(config),
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        package_id: packageId,
+        code,
+        order_id: orderId,
+      }),
+    });
+    const success = response.ok && (response.data.success === true || response.data.message === 'success');
+    return {
+      success,
+      status: response.status,
+      data: response.data,
+      indeterminate: !success && (!response.status || response.status >= 500),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      status: 0,
+      indeterminate: true,
+      data: { message: error.message || 'SubRouter SaaS activation request failed' },
+    };
   }
-  const response = await requestJson(url, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ package_id: packageId }),
-  });
-  const success = response.ok && (response.data.success === true || response.data.message === 'success');
-  return { success, status: response.status, data: response.data };
 }
 
 async function activateSubscriptionCycle(store, { order, event }) {
   if (!order) return { success: false, message: 'Order not found' };
-  if (String(order.status || '').toLowerCase() === 'activated') {
+  const currentStatus = String(order.status || '').toLowerCase();
+  if (currentStatus === 'activated') {
     return { success: true, already_activated: true };
+  }
+  if (currentStatus === 'package_subscribe_failed') {
+    return { success: false, balance_redeemed: true, message: order.error || 'SubRouter balance was redeemed but package subscription failed' };
   }
   if (activatingOrders.has(order.id)) {
     return { success: false, pending: true, message: 'Order activation is already in progress' };
@@ -879,7 +1028,14 @@ async function activateSubscriptionCycle(store, { order, event }) {
     const userId = metadata.subrouter_user_id || order.user_id;
     const subscriptionId = getSubscriptionId(event, order) || `${userId}:${packageId}`;
 
-    const code = store.codes.find((item) => item.package_id === packageId && item.status === 'available');
+    let code = store.codes.find((item) => (
+      item.package_id === packageId &&
+      item.order_id === order.id &&
+      (item.status === 'reserved' || item.status === 'activation_pending')
+    ));
+    if (!code) {
+      code = store.codes.find((item) => item.package_id === packageId && item.status === 'available');
+    }
     if (!code) {
       pushEvent(store, 'code_pool_empty', { package_id: packageId, user_id: userId, order_id: order.id });
       order.status = 'needs_code';
@@ -895,40 +1051,26 @@ async function activateSubscriptionCycle(store, { order, event }) {
       return { success: false, message: 'No available internal code for package' };
     }
 
-    code.status = 'reserved';
-    code.assigned_to = userId;
-    code.subscription_id = subscriptionId;
-    code.reserved_at = now();
+    if (code.status !== 'activation_pending') {
+      code.status = 'reserved';
+      code.assigned_to = userId;
+      code.order_id = order.id;
+      code.subscription_id = subscriptionId;
+      code.reserved_at = now();
+      await saveStore(store);
+    }
 
-    const redeemResult = await redeemSubRouterCode(store, { userId, code: code.code });
-    if (redeemResult.success) {
-      code.status = 'balance_redeemed';
-      code.redeemed_at = now();
-      pushEvent(store, 'balance_code_redeemed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id });
-
-      const subscribeResult = await subscribeSubRouterPackage(store, { userId, packageId });
-      if (!subscribeResult.success) {
-        code.status = 'subscribe_failed';
-        code.subscribe_error = subscribeResult.data?.message || subscribeResult.data?.error || `HTTP ${subscribeResult.status}`;
-        upsertSubscription(store, {
-          user_id: userId,
-          package_id: packageId,
-          subscription_id: subscriptionId,
-          status: 'package_subscribe_failed',
-          order_id: order.id,
-          last_code_id: code.id,
-          current_period_end: periodEndFromEvent(event),
-          next_renewal_time: periodEndFromEvent(event),
-        });
-        order.status = 'package_subscribe_failed';
-        order.error = code.subscribe_error;
-        order.updated_at = now();
-        pushEvent(store, 'package_subscribe_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: code.subscribe_error });
-        return { success: false, message: code.subscribe_error, balance_redeemed: true };
-      }
-
+    const internalActivationResult = await activateSubRouterSaasPackage(store, {
+      userId,
+      packageId,
+      code: code.code,
+      orderId: order.id,
+    });
+    if (internalActivationResult.success) {
       code.status = 'subscribed';
+      code.redeemed_at = now();
       code.subscribed_at = now();
+      pushEvent(store, 'balance_code_redeemed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, source: 'internal_saas_activate' });
       upsertSubscription(store, {
         user_id: userId,
         package_id: packageId,
@@ -942,30 +1084,164 @@ async function activateSubscriptionCycle(store, { order, event }) {
       order.status = 'activated';
       order.error = '';
       order.updated_at = now();
-      pushEvent(store, 'package_subscribed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id });
+      pushEvent(store, 'package_subscribed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, source: 'internal_saas_activate' });
       return { success: true };
     }
+    if (!internalActivationResult.skipped) {
+      const internalData = internalActivationResult.data || {};
+      const internalDetail = internalData.data || {};
+      const internalCode = String(internalData.code || '').trim();
+      const message = internalData.message || internalData.error || `HTTP ${internalActivationResult.status}`;
+      if (internalCode === 'package_subscribe_failed' || internalDetail.balance_redeemed === true) {
+        code.status = 'subscribe_failed';
+        code.redeemed_at = now();
+        code.subscribe_error = message;
+        upsertSubscription(store, {
+          user_id: userId,
+          package_id: packageId,
+          subscription_id: subscriptionId,
+          status: 'package_subscribe_failed',
+          order_id: order.id,
+          last_code_id: code.id,
+          current_period_end: periodEndFromEvent(event),
+          next_renewal_time: periodEndFromEvent(event),
+        });
+        order.status = 'package_subscribe_failed';
+        order.error = code.subscribe_error;
+        order.updated_at = now();
+        pushEvent(store, 'package_subscribe_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: code.subscribe_error, source: 'internal_saas_activate' });
+        return { success: false, message: code.subscribe_error, balance_redeemed: true };
+      }
 
-    code.status = 'redeem_failed';
-    code.redeem_error = redeemResult.data?.message || redeemResult.data?.error || `HTTP ${redeemResult.status}`;
-    upsertSubscription(store, {
-      user_id: userId,
-      package_id: packageId,
-      subscription_id: subscriptionId,
-      status: 'redeem_failed',
-      order_id: order.id,
-      last_code_id: code.id,
-      current_period_end: periodEndFromEvent(event),
-      next_renewal_time: periodEndFromEvent(event),
-    });
-    order.status = 'redeem_failed';
-    order.error = code.redeem_error;
+      if (internalActivationResult.indeterminate) {
+        code.status = 'activation_pending';
+        code.activation_error = message;
+        code.last_attempt_at = now();
+        upsertSubscription(store, {
+          user_id: userId,
+          package_id: packageId,
+          subscription_id: subscriptionId,
+          status: 'activation_pending',
+          order_id: order.id,
+          last_code_id: code.id,
+          current_period_end: periodEndFromEvent(event),
+          next_renewal_time: periodEndFromEvent(event),
+        });
+        order.status = 'activation_pending';
+        order.error = message;
+        order.updated_at = now();
+        pushEvent(store, 'internal_activation_pending', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: message, status: internalActivationResult.status });
+        return { success: false, pending: true, message };
+      }
+
+      if (internalCode !== 'redeem_failed') {
+        code.status = 'available';
+        code.assigned_to = '';
+        code.order_id = '';
+        code.subscription_id = '';
+        delete code.reserved_at;
+        order.status = 'activation_failed';
+        order.error = message;
+        order.updated_at = now();
+        pushEvent(store, 'internal_activation_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: message, status: internalActivationResult.status });
+        return { success: false, message };
+      }
+
+      code.status = 'redeem_failed';
+      code.redeem_error = message;
+      upsertSubscription(store, {
+        user_id: userId,
+        package_id: packageId,
+        subscription_id: subscriptionId,
+        status: 'redeem_failed',
+        order_id: order.id,
+        last_code_id: code.id,
+        current_period_end: periodEndFromEvent(event),
+        next_renewal_time: periodEndFromEvent(event),
+      });
+      order.status = 'redeem_failed';
+      order.error = code.redeem_error;
+      order.updated_at = now();
+      pushEvent(store, 'redeem_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: code.redeem_error, source: 'internal_saas_activate' });
+      return { success: false, message: code.redeem_error };
+    }
+
+    if (internalActivationResult.skipped) {
+      const message = internalActivationResult.message || 'SubRouter SaaS activation is not configured';
+      code.status = 'available';
+      code.assigned_to = '';
+      code.order_id = '';
+      code.subscription_id = '';
+      delete code.reserved_at;
+      order.status = 'activation_failed';
+      order.error = message;
+      order.updated_at = now();
+      pushEvent(store, 'internal_activation_skipped', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: message });
+      return { success: false, message };
+    }
+
+    const message = 'SubRouter SaaS activation did not return a terminal result';
+    code.status = 'available';
+    code.assigned_to = '';
+    code.order_id = '';
+    code.subscription_id = '';
+    delete code.reserved_at;
+    order.status = 'activation_failed';
+    order.error = message;
     order.updated_at = now();
-    pushEvent(store, 'redeem_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: code.redeem_error });
-    return { success: false, message: code.redeem_error };
+    pushEvent(store, 'internal_activation_failed', { package_id: packageId, user_id: userId, order_id: order.id, code_id: code.id, error: message });
+    return { success: false, message };
   } finally {
     activatingOrders.delete(order.id);
   }
+}
+
+function bridgeCustomerFromEvent(event) {
+  const customer = event.customer ||
+    event.data?.customer ||
+    event.object?.customer ||
+    event.data?.object?.customer ||
+    {};
+  return {
+    email: String(customer.email || event.customer_email || '').trim(),
+    name: String(customer.name || event.customer_name || '').trim(),
+  };
+}
+
+async function notifyCreemBridgeComplete(store, { order, eventId, event }) {
+  const config = getConfig(store);
+  const customer = bridgeCustomerFromEvent(event || {});
+  const payload = {
+    mode: 'topup',
+    reference_id: order.reference_id,
+    status: 'success',
+    customer_email: customer.email,
+    customer_name: customer.name,
+    event_id: String(eventId || ''),
+  };
+  const rawBody = JSON.stringify(payload);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = signHmac(`${timestamp}.${rawBody}`, config.creem_topup_bridge_secret);
+  const response = await requestJson(order.callback_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Creem-Bridge-Timestamp': timestamp,
+      'X-Creem-Bridge-Signature': signature,
+    },
+    body: rawBody,
+  });
+  const success = response.ok && (response.data.success === true || response.data.message === 'success' || Object.keys(response.data || {}).length === 0);
+  if (success) {
+    order.status = 'completed';
+    order.completed_at = now();
+  } else {
+    order.status = 'callback_failed';
+    order.callback_error = response.data?.message || response.data?.error || `HTTP ${response.status}`;
+  }
+  order.callback_status = response.status;
+  order.updated_at = now();
+  return { success, status: response.status, data: response.data };
 }
 
 function upsertSubscription(store, input) {
@@ -987,7 +1263,7 @@ function upsertSubscription(store, input) {
 }
 
 function orderCanBeManuallyActivated(order) {
-  return order && !['activated'].includes(String(order.status || '').toLowerCase());
+  return order && !['activated', 'package_subscribe_failed'].includes(String(order.status || '').toLowerCase());
 }
 
 export async function handleSiteSaasRequest(req, res) {
@@ -1019,6 +1295,101 @@ export async function handleSiteSaasRequest(req, res) {
           public_api_base_url: config.public_api_base_url,
         },
       });
+    }
+
+    if (url.pathname === '/api/site/creem-bridge/start' && req.method === 'GET') {
+      const config = getConfig(store);
+      if (!config.creem_topup_bridge_enabled) {
+        return sendJson(res, 403, { success: false, message: 'Creem top-up bridge is disabled' });
+      }
+      if (!config.creem_topup_bridge_secret) {
+        return sendJson(res, 500, { success: false, message: 'Creem bridge secret is not configured' });
+      }
+      const verification = verifyBridgeStartParams(url.searchParams, config.creem_topup_bridge_secret);
+      if (!verification.ok) {
+        return sendJson(res, 401, { success: false, message: verification.message });
+      }
+
+      const referenceId = String(url.searchParams.get('reference_id') || '').trim();
+      const productId = String(url.searchParams.get('product_id') || '').trim();
+      const callbackUrl = normalizeAbsoluteHttpUrl(url.searchParams.get('callback_url'));
+      const returnUrl = normalizeAbsoluteHttpUrl(url.searchParams.get('return_url'));
+      const units = Math.max(1, Number.parseInt(url.searchParams.get('units') || '1', 10) || 1);
+      if (!referenceId || !productId || !callbackUrl || !returnUrl) {
+        return sendJson(res, 400, { success: false, message: 'Missing bridge checkout parameters' });
+      }
+
+      let order = store.orders.find((item) => item.source === 'creem_topup_bridge' && item.reference_id === referenceId);
+      if (!order) {
+        order = {
+          id: id('brg'),
+          source: 'creem_topup_bridge',
+          bridge_mode: 'topup',
+          reference_id: referenceId,
+          user_id: String(url.searchParams.get('user_id') || '').trim(),
+          username: String(url.searchParams.get('username') || '').trim(),
+          email: String(url.searchParams.get('email') || '').trim(),
+          product_id: productId,
+          product_name: String(url.searchParams.get('product_name') || '').trim(),
+          quota: Number.parseInt(url.searchParams.get('quota') || '0', 10) || 0,
+          amount: Number.parseInt(url.searchParams.get('amount') || '0', 10) || 0,
+          currency: String(url.searchParams.get('currency') || '').trim(),
+          units,
+          callback_url: callbackUrl,
+          return_url: returnUrl,
+          status: 'pending',
+          created_at: now(),
+        };
+        store.orders.push(order);
+        await saveStore(store);
+      }
+
+      if (order.checkout_url && order.status === 'checkout_created') {
+        res.writeHead(302, { Location: order.checkout_url, 'Cache-Control': 'no-store' });
+        return res.end();
+      }
+
+      const publicOrigin = publicSiteOrigin(req, config);
+      const successUrl = `${publicOrigin}/api/site/creem-bridge/return?order_id=${encodeURIComponent(order.id)}&status=success`;
+      try {
+        const checkout = await createCreemCheckout(store, {
+          order,
+          productId,
+          returnUrl: successUrl,
+          units,
+        });
+        order.status = 'checkout_created';
+        order.checkout_id = checkout.checkout_id;
+        order.checkout_url = checkout.checkout_url;
+        order.updated_at = now();
+        pushEvent(store, 'bridge_checkout_created', { order_id: order.id, reference_id: referenceId, user_id: order.user_id });
+        await saveStore(store);
+        res.writeHead(302, { Location: checkout.checkout_url, 'Cache-Control': 'no-store' });
+        return res.end();
+      } catch (error) {
+        order.status = 'checkout_failed';
+        order.error = error.message;
+        order.updated_at = now();
+        pushEvent(store, 'bridge_checkout_failed', { order_id: order.id, reference_id: referenceId, error: error.message });
+        await saveStore(store);
+        return sendJson(res, 500, { success: false, message: error.message });
+      }
+    }
+
+    if (url.pathname === '/api/site/creem-bridge/return' && req.method === 'GET') {
+      const orderId = String(url.searchParams.get('order_id') || '').trim();
+      const status = String(url.searchParams.get('status') || '').toLowerCase() === 'success' ? 'success' : 'cancelled';
+      const order = store.orders.find((item) => item.source === 'creem_topup_bridge' && item.id === orderId);
+      if (!order) {
+        return sendBridgeReturnPage(res, 'https://subrouter.com');
+      }
+      if (status !== 'success' && order.status !== 'completed') {
+        order.status = 'cancelled';
+        order.updated_at = now();
+        pushEvent(store, 'bridge_checkout_cancelled', { order_id: order.id, reference_id: order.reference_id });
+        await saveStore(store);
+      }
+      return sendBridgeReturnPage(res, appendBridgeReturnStatus(order.return_url, status));
     }
 
     if (url.pathname === '/api/site/saas/playground-proxy' && req.method === 'POST') {
@@ -1070,6 +1441,8 @@ export async function handleSiteSaasRequest(req, res) {
         'creem_api_base_url',
         'creem_checkout_path',
         'creem_webhook_secret',
+        'creem_topup_bridge_enabled',
+        'creem_topup_bridge_secret',
         'subrouter_base_url',
         'public_api_base_url',
         'subrouter_internal_token',
@@ -1078,7 +1451,9 @@ export async function handleSiteSaasRequest(req, res) {
       ];
       for (const key of keys) {
         if (Object.prototype.hasOwnProperty.call(body, key)) {
-          store.config[key] = String(body[key] || '').trim();
+          store.config[key] = key === 'creem_topup_bridge_enabled'
+            ? body[key] === true || body[key] === 'true'
+            : String(body[key] || '').trim();
         }
       }
       if (body.package_mappings && typeof body.package_mappings === 'object') {
@@ -1113,6 +1488,36 @@ export async function handleSiteSaasRequest(req, res) {
       return sendJson(res, 200, { success: true, data: { imported, state: publicState(store) } });
     }
 
+    if (url.pathname === '/api/site/admin/saas/codes/release-failed' && req.method === 'POST') {
+      if (!requireAdmin(req)) return sendJson(res, 401, { success: false, message: 'Invalid site admin token' });
+      const packageId = String(body.package_id || '').trim();
+      const orderId = String(body.order_id || '').trim();
+      let released = 0;
+      for (const code of store.codes) {
+        if (code.status !== 'redeem_failed') continue;
+        if (packageId && String(code.package_id) !== packageId) continue;
+        if (orderId && String(code.order_id || '') !== orderId && String(code.subscription_id || '') !== orderId) continue;
+        code.status = 'available';
+        code.assigned_to = '';
+        code.order_id = '';
+        code.subscription_id = '';
+        delete code.reserved_at;
+        delete code.redeem_error;
+        released += 1;
+      }
+      if (orderId) {
+        const order = store.orders.find((item) => item.id === orderId);
+        if (order && String(order.status || '').toLowerCase() === 'redeem_failed') {
+          order.status = 'activation_failed';
+          order.error = 'Redeem failed code released for retry';
+          order.updated_at = now();
+        }
+      }
+      pushEvent(store, 'failed_codes_released', { package_id: packageId || '', order_id: orderId || '', released });
+      await saveStore(store);
+      return sendJson(res, 200, { success: true, data: { released, state: publicState(store) } });
+    }
+
     if (url.pathname === '/api/site/admin/saas/orders/activate' && req.method === 'POST') {
       if (!requireAdmin(req)) return sendJson(res, 401, { success: false, message: 'Invalid site admin token' });
       const orderId = String(body.order_id || '').trim();
@@ -1120,7 +1525,7 @@ export async function handleSiteSaasRequest(req, res) {
       const order = store.orders.find((item) => item.id === orderId);
       if (!order) return sendJson(res, 404, { success: false, message: 'Order not found' });
       if (!orderCanBeManuallyActivated(order)) {
-        return sendJson(res, 400, { success: false, message: `Order ${orderId} is already activated` });
+        return sendJson(res, 400, { success: false, message: `Order ${orderId} cannot be manually activated in status ${order.status || 'unknown'}` });
       }
 
       const result = await activateSubscriptionCycle(store, {
@@ -1271,6 +1676,12 @@ export async function handleSiteSaasRequest(req, res) {
         });
         await saveStore(store);
         return sendJson(res, 202, { success: false, message: 'Order not found for webhook metadata' });
+      }
+      if (order.source === 'creem_topup_bridge') {
+        const result = await notifyCreemBridgeComplete(store, { order, eventId, event: body });
+        pushEvent(store, 'bridge_webhook_processed', { event_id: eventId, order_id: order.id, reference_id: order.reference_id, success: result.success });
+        await saveStore(store);
+        return sendJson(res, result.success ? 200 : 202, { success: result.success, data: result });
       }
       const result = await activateSubscriptionCycle(store, { order, event: body });
       pushEvent(store, 'webhook_processed', { event_id: eventId, order_id: order.id, success: result.success });

@@ -6,6 +6,7 @@ import {
   getSitePackages,
   getSiteSaasAdminState,
   importSiteSaasCodes,
+  releaseSiteSaasFailedCodes,
   updateSiteSaasAdminConfig,
 } from '../api';
 import {
@@ -40,9 +41,13 @@ function emptyConfig() {
     creem_api_base_url: 'https://api.creem.io',
     creem_checkout_path: '/v1/checkouts',
     creem_webhook_secret: '',
+    creem_topup_bridge_enabled: false,
+    creem_topup_bridge_secret: '',
     subrouter_base_url: 'http://localhost:3000',
     public_api_base_url: '',
     subrouter_internal_token: '',
+    site_public_url: 'https://subrouter.com',
+    subrouter_site_host: '',
   };
 }
 
@@ -59,6 +64,7 @@ export default function SaasAdmin() {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [activatingOrder, setActivatingOrder] = useState('');
+  const [releasingFailed, setReleasingFailed] = useState(false);
 
   const enabledPackages = useMemo(
     () => packages.filter((pkg) => pkg.enabled !== false),
@@ -107,8 +113,11 @@ export default function SaasAdmin() {
         ...current,
         creem_api_base_url: data.config?.creem_api_base_url || current.creem_api_base_url,
         creem_checkout_path: data.config?.creem_checkout_path || current.creem_checkout_path,
+        creem_topup_bridge_enabled: !!data.config?.creem_topup_bridge_enabled,
         subrouter_base_url: data.config?.subrouter_base_url || current.subrouter_base_url,
         public_api_base_url: data.config?.public_api_base_url ?? current.public_api_base_url,
+        site_public_url: data.config?.site_public_url || current.site_public_url,
+        subrouter_site_host: data.config?.subrouter_site_host ?? current.subrouter_site_host,
       }));
       setMappings(data.config?.package_mappings || {});
       setPackages((current) => (current.length ? current : fallbackPackagesFromState(data)));
@@ -140,12 +149,16 @@ export default function SaasAdmin() {
     const payload = {
       creem_api_base_url: config.creem_api_base_url,
       creem_checkout_path: config.creem_checkout_path,
+      creem_topup_bridge_enabled: !!config.creem_topup_bridge_enabled,
       subrouter_base_url: config.subrouter_base_url,
       public_api_base_url: config.public_api_base_url,
+      site_public_url: config.site_public_url,
+      subrouter_site_host: config.subrouter_site_host,
       package_mappings: mappings,
     };
     if (config.creem_api_key.trim()) payload.creem_api_key = config.creem_api_key.trim();
     if (config.creem_webhook_secret.trim()) payload.creem_webhook_secret = config.creem_webhook_secret.trim();
+    if (config.creem_topup_bridge_secret.trim()) payload.creem_topup_bridge_secret = config.creem_topup_bridge_secret.trim();
     if (config.subrouter_internal_token.trim()) payload.subrouter_internal_token = config.subrouter_internal_token.trim();
 
     const res = await updateSiteSaasAdminConfig(adminToken, payload).catch((error) => {
@@ -158,6 +171,7 @@ export default function SaasAdmin() {
         ...current,
         creem_api_key: '',
         creem_webhook_secret: '',
+        creem_topup_bridge_secret: '',
         subrouter_internal_token: '',
       }));
       setState(res.data.data);
@@ -208,6 +222,21 @@ export default function SaasAdmin() {
     setActivatingOrder('');
   };
 
+  const handleReleaseFailedCodes = async () => {
+    const adminToken = token.trim();
+    setReleasingFailed(true);
+    const res = await releaseSiteSaasFailedCodes(adminToken, selectedPackage ? { package_id: selectedPackage } : {}).catch((error) => {
+      toast.error(error.response?.data?.message || 'Failed to release failed codes');
+      return null;
+    });
+    if (res?.data?.success) {
+      toast.success(`Released ${res.data.data?.released || 0} failed codes`);
+      setState(res.data.data?.state || state);
+      await loadState(adminToken);
+    }
+    setReleasingFailed(false);
+  };
+
   return (
     <ConsolePage>
       <ConsoleHero
@@ -233,7 +262,7 @@ export default function SaasAdmin() {
         ]}
       />
 
-      <ConsoleSection className="mt-6" title="Admin access" subtitle="Set SITE_ADMIN_TOKEN on the site backend in production. If it is empty, local development allows access without a token.">
+      <ConsoleSection className="mt-6" title="Admin access" subtitle="Set SITE_ADMIN_TOKEN on public deployments. If it is empty, only local development requests can access this console.">
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
             <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-page-muted" />
@@ -263,11 +292,23 @@ export default function SaasAdmin() {
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Creem API key" value={config.creem_api_key} onChange={(value) => setConfig({ ...config, creem_api_key: value })} placeholder={state?.config?.creem_api_key_configured ? 'Configured. Leave blank to keep.' : 'Enter API key'} secret />
               <Field label="Creem webhook secret" value={config.creem_webhook_secret} onChange={(value) => setConfig({ ...config, creem_webhook_secret: value })} placeholder={state?.config?.creem_webhook_secret_configured ? 'Configured. Leave blank to keep.' : 'Webhook signing secret'} secret />
+              <Field label="Creem top-up bridge secret" value={config.creem_topup_bridge_secret} onChange={(value) => setConfig({ ...config, creem_topup_bridge_secret: value })} placeholder={state?.config?.creem_topup_bridge_secret_configured ? 'Configured. Leave blank to keep.' : 'Shared bridge signing secret'} secret />
               <Field label="Creem API base URL" value={config.creem_api_base_url} onChange={(value) => setConfig({ ...config, creem_api_base_url: value })} />
               <Field label="Checkout path" value={config.creem_checkout_path} onChange={(value) => setConfig({ ...config, creem_checkout_path: value })} />
+              <label className="flex items-center gap-3 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-3 text-sm text-page-label">
+                <input
+                  type="checkbox"
+                  checked={!!config.creem_topup_bridge_enabled}
+                  onChange={(event) => setConfig({ ...config, creem_topup_bridge_enabled: event.target.checked })}
+                  className="h-4 w-4 rounded border-page-divider"
+                />
+                <span>Enable Creem top-up bridge</span>
+              </label>
               <Field label="SubRouter API base URL" value={config.subrouter_base_url} onChange={(value) => setConfig({ ...config, subrouter_base_url: value })} />
               <Field label="Public API base URL" value={config.public_api_base_url} onChange={(value) => setConfig({ ...config, public_api_base_url: value })} placeholder="Leave blank to use frontend default /v1" />
-              <Field label="SubRouter internal token" value={config.subrouter_internal_token} onChange={(value) => setConfig({ ...config, subrouter_internal_token: value })} placeholder={state?.config?.subrouter_internal_token_configured ? 'Configured. Leave blank to keep.' : 'Optional'} secret />
+              <Field label="Site public URL" value={config.site_public_url} onChange={(value) => setConfig({ ...config, site_public_url: value })} placeholder="https://subrouter.com" />
+              <Field label="SubRouter site host" value={config.subrouter_site_host} onChange={(value) => setConfig({ ...config, subrouter_site_host: value })} placeholder="Optional upstream Host override" />
+              <Field label="SubRouter SaaS activation token" value={config.subrouter_internal_token} onChange={(value) => setConfig({ ...config, subrouter_internal_token: value })} placeholder={state?.config?.subrouter_internal_token_configured ? 'Configured. Leave blank to keep.' : 'Paste token from SubRouter distributor settings'} secret />
             </div>
 
             <div className="mt-8">
@@ -341,6 +382,15 @@ export default function SaasAdmin() {
               {importing ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
               Import codes
             </button>
+            <button
+              type="button"
+              onClick={handleReleaseFailedCodes}
+              disabled={releasingFailed}
+              className="btn-secondary mt-3 inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 disabled:opacity-60"
+            >
+              {releasingFailed ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
+              Release failed codes
+            </button>
 
             <CodeStats stats={state?.code_stats || []} />
           </div>
@@ -354,7 +404,8 @@ export default function SaasAdmin() {
             <p className="p-4 text-sm text-page-muted">No orders yet.</p>
           ) : (
             state.orders.slice(0, 8).map((order) => {
-              const canActivate = order.status !== 'activated';
+              const orderStatus = String(order.status || '').toLowerCase();
+              const canActivate = !['activated', 'package_subscribe_failed'].includes(orderStatus);
               return (
                 <div key={order.id} className="grid gap-3 p-4 text-sm lg:grid-cols-[180px_120px_1fr_180px] lg:items-center">
                   <span className="text-page-muted">{new Date(order.created_at).toLocaleString()}</span>
@@ -418,10 +469,11 @@ function Field({ label, value, onChange, placeholder, secret = false }) {
 function CodeStats({ stats }) {
   return (
     <div className="mt-6 overflow-hidden rounded-xl border border-page-divider">
-      <div className="hidden grid-cols-5 bg-page-surface/50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-page-muted sm:grid">
+      <div className="hidden grid-cols-6 bg-page-surface/50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-page-muted sm:grid">
         <span>Package</span>
         <span>Total</span>
         <span>Free</span>
+        <span>Pending</span>
         <span>Activated</span>
         <span>Failed</span>
       </div>
@@ -429,10 +481,11 @@ function CodeStats({ stats }) {
         <p className="p-4 text-sm text-page-muted">No codes imported yet.</p>
       ) : (
         stats.map((stat) => (
-          <div key={stat.package_id} className="grid gap-2 border-t border-page-divider px-3 py-3 text-sm sm:grid-cols-5 sm:py-2">
+          <div key={stat.package_id} className="grid gap-2 border-t border-page-divider px-3 py-3 text-sm sm:grid-cols-6 sm:py-2">
             <span className="truncate font-mono text-xs text-page-secondary">{stat.package_id}</span>
             <MetricValue label="Total" value={stat.total} />
             <MetricValue label="Free" value={stat.available} className="text-page-success" />
+            <MetricValue label="Pending" value={stat.reserved || 0} />
             <MetricValue label="Activated" value={stat.subscribed} />
             <MetricValue label="Failed" value={stat.failed} className="text-page-danger" />
           </div>

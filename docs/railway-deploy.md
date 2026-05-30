@@ -34,7 +34,7 @@ Optional variables:
 ```env
 CREEM_API_KEY=creem_key
 CREEM_WEBHOOK_SECRET=creem_webhook_secret
-SUBROUTER_INTERNAL_TOKEN=optional_internal_token
+SUBROUTER_SAAS_ACTIVATION_TOKEN=token_generated_in_subrouter_distributor_console
 SITE_SAAS_STORE=/data/site-saas-store.json
 ```
 

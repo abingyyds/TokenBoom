@@ -41,9 +41,16 @@ function normalizeCreemProducts(value) {
   if (!value) return [];
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value;
-    return Array.isArray(parsed)
-      ? parsed.filter((product) => product?.productId && Number(product?.quota) > 0)
-      : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((product) => {
+        if (!product || typeof product !== 'object') return null;
+        const productId = String(product.productId || product.product_id || product.id || '').trim();
+        const quota = Number(product.quota ?? product.quotaAmount ?? product.quota_amount ?? product.amount ?? product.price);
+        if (!productId || !Number.isFinite(quota) || quota <= 0) return null;
+        return { ...product, productId, quota };
+      })
+      .filter(Boolean);
   } catch {
     return [];
   }
@@ -56,13 +63,16 @@ function getCreemMinTopup(products) {
   return quotas.length > 0 ? Math.min(...quotas) : 1;
 }
 
+function isMultipleOf(value, unit) {
+  if (!Number.isFinite(value) || !Number.isFinite(unit) || unit <= 0) return false;
+  const quotient = value / unit;
+  return Math.abs(quotient - Math.round(quotient)) < 1e-8;
+}
+
 function findCompatibleCreemProduct(products, amount) {
   const payAmount = Number(amount);
   if (!Number.isFinite(payAmount) || payAmount <= 0) return null;
-  return products.find((product) => {
-    const quota = Number(product?.quota);
-    return quota > 0 && payAmount % quota === 0;
-  }) || null;
+  return products.find((product) => isMultipleOf(payAmount, Number(product?.quota))) || null;
 }
 
 function openPendingPaymentWindow() {
@@ -95,20 +105,31 @@ function openPendingPaymentWindow() {
   return opened;
 }
 
-function redirectToPayment(url, pendingWindow) {
-  if (pendingWindow && !pendingWindow.closed) {
-    pendingWindow.location.href = url;
-    return;
+function openPaymentUrl(paymentWindow, url) {
+  if (!url || typeof window === 'undefined') return;
+  if (paymentWindow && !paymentWindow.closed) {
+    try {
+      paymentWindow.opener = null;
+      paymentWindow.location.href = url;
+      return;
+    } catch {
+      // Fall back to same-tab navigation below.
+    }
   }
-  window.location.assign(url);
+  window.location.href = url;
 }
 
-function closePendingPaymentWindow(pendingWindow) {
+function closePendingPaymentWindow(paymentWindow) {
   try {
-    if (pendingWindow && !pendingWindow.closed) pendingWindow.close();
+    if (paymentWindow && !paymentWindow.closed) paymentWindow.close();
   } catch {
     // Ignore browsers that block closing a pending payment window.
   }
+}
+
+function paymentErrorMessage(res, fallback) {
+  if (res?.data?.message === 'success') return fallback;
+  return typeof res?.data?.data === 'string' ? res.data.data : res?.data?.message;
 }
 
 export default function Topup() {
@@ -152,7 +173,6 @@ export default function Topup() {
   const enableStripe = topupInfo?.enable_stripe_topup;
   const enableCreem = topupInfo?.enable_creem_topup;
   const enableCrypto = topupInfo?.enable_crypto_topup;
-  const hasAnyPayment = enableOnline || enableStripe || enableCreem || enableCrypto;
   const redeemCodeShopUrl = useMemo(
     () => normalizeExternalUrl(site?.top_up_link || topupConfig?.top_up_link || topupInfo?.top_up_link),
     [site?.top_up_link, topupConfig?.top_up_link, topupInfo?.top_up_link],
@@ -261,8 +281,9 @@ export default function Topup() {
       return;
     }
     const isGatewayPayment = isStripePayment(method) || isCreemPayment(method);
-    if (isGatewayPayment && payAmount < getMethodMinTopup(method)) {
-      showGatewayMinTopupError(method, getMethodMinTopup(method));
+    const methodMinTopup = getMethodMinTopup(method);
+    if (isGatewayPayment && payAmount < methodMinTopup) {
+      showGatewayMinTopupError(method, methodMinTopup);
       return;
     }
     if (!isGatewayPayment && payAmount < minTopup) {
@@ -272,43 +293,48 @@ export default function Topup() {
     const creemProduct = isCreemPayment(method)
       ? findCompatibleCreemProduct(creemProducts, payAmount)
       : null;
-    if (isCreemPayment(method) && !creemProduct) {
-      toast.error(t('topup.creemUnsupportedAmount') || 'Current amount is not supported by Creem');
+    if (isCreemPayment(method) && creemProducts.length > 0 && !creemProduct) {
+      toast.error(t('topup.creemUnsupportedAmount'));
       return;
     }
-    const pendingPaymentWindow = isGatewayPayment ? openPendingPaymentWindow() : null;
+    const usesPaymentPage = isCreemPayment(method) || isStripePayment(method);
+    let paymentWindow = usesPaymentPage ? openPendingPaymentWindow() : null;
     setPaymentLoading(true);
     setPayingMethod(method);
     try {
-      const returnUrl = window.location.origin + '/topup';
+      const returnUrl = window.location.origin + '/topup?payment=return';
       const data = { amount: payAmount, payment_method: method, return_url: returnUrl };
 
       if (isCreemPayment(method)) {
-        const res = await createCreemOrder({
-          product_id: creemProduct.productId,
-          payment_method: 'creem',
+        const creemData = {
           amount: payAmount,
-        });
+          payment_method: 'creem',
+          return_url: returnUrl,
+        };
+        if (creemProduct?.productId) {
+          creemData.product_id = creemProduct.productId;
+        }
+        const res = await createCreemOrder(creemData);
         if (res.data.message === 'success' && res.data.data?.checkout_url) {
-          redirectToPayment(res.data.data.checkout_url, pendingPaymentWindow);
-        } else if (res.data.message !== 'success') {
-          closePendingPaymentWindow(pendingPaymentWindow);
-          const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
-          toast.error(errMsg || t('common.requestFailed'));
+          openPaymentUrl(paymentWindow, res.data.data.checkout_url);
+          paymentWindow = null;
         } else {
-          closePendingPaymentWindow(pendingPaymentWindow);
+          closePendingPaymentWindow(paymentWindow);
+          paymentWindow = null;
+          const errMsg = paymentErrorMessage(res, t('common.requestFailed'));
+          toast.error(errMsg || t('common.requestFailed'));
         }
       } else if (isStripePayment(method)) {
         // Stripe payment
         const res = await createStripeOrder(data);
         if (res.data.message === 'success' && res.data.data?.pay_link) {
-          redirectToPayment(res.data.data.pay_link, pendingPaymentWindow);
-        } else if (res.data.message !== 'success') {
-          closePendingPaymentWindow(pendingPaymentWindow);
-          const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
-          toast.error(errMsg || t('common.requestFailed'));
+          openPaymentUrl(paymentWindow, res.data.data.pay_link);
+          paymentWindow = null;
         } else {
-          closePendingPaymentWindow(pendingPaymentWindow);
+          closePendingPaymentWindow(paymentWindow);
+          paymentWindow = null;
+          const errMsg = paymentErrorMessage(res, t('common.requestFailed'));
+          toast.error(errMsg || t('common.requestFailed'));
         }
       } else {
         // EPay payment - submit via hidden form (same as main site)
@@ -343,7 +369,9 @@ export default function Topup() {
         }
       }
     } catch (e) {
-      closePendingPaymentWindow(pendingPaymentWindow);
+      closePendingPaymentWindow(paymentWindow);
+      paymentWindow = null;
+      /* interceptor */
     }
     setPaymentLoading(false);
     setPayingMethod('');
@@ -428,7 +456,6 @@ export default function Topup() {
   const selectedCryptoLabel = selectedChainLabel
     ? `${selectedTokenLabel} (${selectedChainLabel})`
     : selectedTokenLabel;
-  const showCryptoPaymentPanel = enableCrypto && availableChains.length > 0;
 
   // Set default chain when available
   useEffect(() => {
@@ -437,7 +464,6 @@ export default function Topup() {
     }
   }, [availableChains, selectedChain]);
 
-  // Parse Creem products
   const creemProducts = useMemo(() => {
     return normalizeCreemProducts(topupInfo?.creem_products);
   }, [topupInfo?.creem_products]);
@@ -461,7 +487,7 @@ export default function Topup() {
     setHistoryLoading(false);
   };
 
-  const topupPayMethods = useMemo(() => {
+  const checkoutPaymentMethods = useMemo(() => {
     const methods = (payMethods || [])
       .filter((m) => m?.type && m.type !== 'crypto')
       .map((method) => {
@@ -478,14 +504,10 @@ export default function Topup() {
       });
 
     if (enableCreem && creemProducts.length > 0 && !methods.some((method) => method.type === 'creem')) {
-      methods.push({
-        name: 'Creem',
-        type: 'creem',
-        min_topup: creemMinTopup,
-      });
+      methods.push({ name: 'Creem', type: 'creem', min_topup: creemMinTopup });
     }
     return methods;
-  }, [payMethods, enableCreem, creemProducts, creemMinTopup, topupInfo?.stripe_min_topup]);
+  }, [payMethods, enableCreem, creemProducts.length, creemMinTopup, topupInfo?.stripe_min_topup]);
 
   if (loading) {
     return (
@@ -550,13 +572,13 @@ export default function Topup() {
         stats={statCards}
       />
 
-      {site?.enable_topup && (enableOnline || enableStripe || enableCreem || enableCrypto) && (topupPayMethods.length > 0 || showCryptoPaymentPanel) && (
+      {site?.enable_topup && (enableOnline || enableStripe || enableCreem || enableCrypto) && (checkoutPaymentMethods.length > 0 || enableCrypto) && (
         <ConsoleSection
           className="mt-6"
           title={t('topup.onlineTopup')}
           subtitle="Choose a payment method, set the amount, and complete checkout."
         >
-          <div className={`grid gap-6 ${showCryptoPaymentPanel ? 'xl:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]' : ''}`}>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]">
             <div className="space-y-6">
               <div>
                 <label className="mb-3 block text-sm font-medium text-page-label">{t('topup.selectAmount')}</label>
@@ -612,50 +634,48 @@ export default function Topup() {
                 ) : null}
               </div>
 
-              {topupPayMethods.length > 0 && (
-                <div>
-                  <label className="mb-3 block text-sm font-medium text-page-label">{t('topup.paymentMethod')}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {topupPayMethods.map((method) => {
-                      const isCurrentLoading = paymentLoading && payingMethod === method.type;
-                      const isMethodStripe = isStripePayment(method.type);
-                      const isMethodCreem = isCreemPayment(method.type);
-                      const minForMethod = Number(method.min_topup) || 0;
-                      const belowGatewayMin =
-                        (isMethodStripe || isMethodCreem) &&
-                        minForMethod > Number(amount || 0);
-                      const disabled =
-                        paymentLoading ||
-                        !amount ||
-                        (!enableOnline && !isMethodStripe && !isMethodCreem) ||
-                        (!enableStripe && isMethodStripe) ||
-                        (!enableCreem && isMethodCreem);
-                      return (
-                        <button
-                          key={method.type}
-                          onClick={() => handlePay(method.type)}
-                          disabled={disabled}
-                          title={
-                            belowGatewayMin
-                              ? t('topup.gatewayMinimumAmount', {
-                                  channel: method.name,
-                                  amount: formatCurrencyAmount(minForMethod),
-                                })
-                              : undefined
-                          }
-                          className="inline-flex items-center gap-2 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-2.5 text-sm font-medium text-page-label transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {isCurrentLoading ? t('topup.processing') : method.name}
-                        </button>
-                      );
-                    })}
-                  </div>
+              <div>
+                <label className="mb-3 block text-sm font-medium text-page-label">{t('topup.paymentMethod')}</label>
+                <div className="flex flex-wrap gap-2">
+                  {checkoutPaymentMethods.map((method) => {
+                    const isCurrentLoading = paymentLoading && payingMethod === method.type;
+                    const isMethodStripe = isStripePayment(method.type);
+                    const isMethodCreem = isCreemPayment(method.type);
+                    const minForMethod = Number(method.min_topup) || 0;
+                    const belowGatewayMin =
+                      (isMethodStripe || isMethodCreem) &&
+                      minForMethod > Number(amount || 0);
+                    const disabled =
+                      paymentLoading ||
+                      !amount ||
+                      (!enableOnline && !isMethodStripe && !isMethodCreem) ||
+                      (!enableStripe && isMethodStripe) ||
+                      (!enableCreem && isMethodCreem);
+                    return (
+                      <button
+                        key={method.type}
+                        onClick={() => handlePay(method.type)}
+                        disabled={disabled}
+                        title={
+                          belowGatewayMin
+                            ? t('topup.gatewayMinimumAmount', {
+                                channel: method.name,
+                                amount: formatCurrencyAmount(minForMethod),
+                              })
+                            : undefined
+                        }
+                        className="inline-flex items-center gap-2 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-2.5 text-sm font-medium text-page-label transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {isCurrentLoading ? t('topup.processing') : method.name}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
             </div>
 
-            {showCryptoPaymentPanel && (
-              <div className="space-y-6">
+            <div className="space-y-6">
+              {enableCrypto && availableChains.length > 0 && (
                 <div className="rounded-2xl border border-page-divider bg-page-surface/40 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-brand-500" />
@@ -717,8 +737,8 @@ export default function Topup() {
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </ConsoleSection>
       )}
