@@ -71,7 +71,7 @@
     "register.password": "Password",
     "register.confirmPassword": "Confirm Password",
     "register.chooseUsername": "Choose a username",
-    "register.emailPlaceholder": "abingyyds@gmail.com (optional)",
+    "register.emailPlaceholder": "support@tokenboom.ai (optional)",
     "register.passwordPlaceholder": "8-20 characters",
     "register.repeatPassword": "Repeat your password",
     "register.creating": "Creating...",
