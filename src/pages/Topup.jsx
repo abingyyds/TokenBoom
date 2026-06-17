@@ -37,6 +37,11 @@ function normalizeExternalUrl(value) {
   }
 }
 
+function normalizePaymentLabel(value) {
+  const label = String(value || '').trim();
+  return Array.from(label).slice(0, 32).join('');
+}
+
 function normalizeCreemProducts(value) {
   if (!value) return [];
   try {
@@ -158,6 +163,8 @@ export default function Topup() {
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [payingMethod, setPayingMethod] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [cryptoDetailsOpen, setCryptoDetailsOpen] = useState(false);
 
   // Crypto modal
   const [cryptoOrder, setCryptoOrder] = useState(null);
@@ -183,6 +190,15 @@ export default function Topup() {
     () => normalizeExternalUrl(site?.top_up_link || topupConfig?.top_up_link || topupInfo?.top_up_link),
     [site?.top_up_link, topupConfig?.top_up_link, topupInfo?.top_up_link],
   );
+  const redeemCodeShopLabel = useMemo(
+    () => normalizePaymentLabel(site?.top_up_link_name || topupConfig?.top_up_link_name || topupInfo?.top_up_link_name) || t('topup.otherPayment'),
+    [site?.top_up_link_name, topupConfig?.top_up_link_name, topupInfo?.top_up_link_name, t],
+  );
+
+  const openRedeemCodeShop = useCallback(() => {
+    if (!redeemCodeShopUrl) return;
+    window.open(redeemCodeShopUrl, '_blank', 'noopener,noreferrer');
+  }, [redeemCodeShopUrl]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -281,6 +297,8 @@ export default function Topup() {
 
   // Pay handler for EPay, Stripe, and Creem methods
   const handlePay = async (method) => {
+    setSelectedPaymentMethod(method);
+    setCryptoDetailsOpen(false);
     const payAmount = parseInt(amount);
     if (!payAmount || payAmount <= 0) {
       toast.error(t('topup.enterAmount'));
@@ -462,6 +480,16 @@ export default function Topup() {
   const selectedCryptoLabel = selectedChainLabel
     ? `${selectedTokenLabel} (${selectedChainLabel})`
     : selectedTokenLabel;
+  const shouldShowCryptoOptions =
+    cryptoDetailsOpen && selectedPaymentMethod === 'crypto' && enableCrypto && availableChains.length > 0;
+
+  const handleSelectCryptoPayment = () => {
+    setSelectedPaymentMethod('crypto');
+    setCryptoDetailsOpen(true);
+    if (!selectedChain && availableChains.length > 0) {
+      setSelectedChain(availableChains[0].key);
+    }
+  };
 
   // Set default chain when available
   useEffect(() => {
@@ -469,6 +497,12 @@ export default function Topup() {
       setSelectedChain(availableChains[0].key);
     }
   }, [availableChains, selectedChain]);
+
+  useEffect(() => {
+    if (!enableCrypto || availableChains.length === 0 || selectedPaymentMethod !== 'crypto') {
+      setCryptoDetailsOpen(false);
+    }
+  }, [availableChains.length, enableCrypto, selectedPaymentMethod]);
 
   const creemProducts = useMemo(() => {
     return normalizeCreemProducts(topupInfo?.creem_products);
@@ -513,7 +547,7 @@ export default function Topup() {
       methods.push({ name: 'Creem', type: 'creem', min_topup: creemMinTopup });
     }
     return methods;
-  }, [payMethods, enableCreem, creemProducts.length, creemMinTopup, topupInfo?.stripe_min_topup]);
+  }, [payMethods, enableCreem, creemProducts, creemMinTopup, topupInfo?.stripe_min_topup]);
 
   if (loading) {
     return (
@@ -578,7 +612,7 @@ export default function Topup() {
         stats={statCards}
       />
 
-      {site?.enable_topup && (enableOnline || enableStripe || enableCreem || enableCrypto) && (checkoutPaymentMethods.length > 0 || enableCrypto) && (
+      {site?.enable_topup && (enableOnline || enableStripe || enableCreem || enableCrypto || redeemCodeShopUrl) && (checkoutPaymentMethods.length > 0 || enableCrypto || redeemCodeShopUrl) && (
         <ConsoleSection
           className="mt-6"
           title={t('topup.onlineTopup')}
@@ -670,18 +704,53 @@ export default function Topup() {
                               })
                             : undefined
                         }
-                        className="inline-flex items-center gap-2 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-2.5 text-sm font-medium text-page-label transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
+                        className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                          selectedPaymentMethod === method.type
+                            ? 'border-brand-500/40 bg-brand-500/15 text-page'
+                            : 'border-page-divider bg-page-surface/40 text-page-label hover:bg-page-surface-hover hover:text-page'
+                        }`}
                       >
                         {isCurrentLoading ? t('topup.processing') : method.name}
                       </button>
                     );
                   })}
+                  {enableCrypto && availableChains.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleSelectCryptoPayment}
+                      disabled={paymentLoading}
+                      className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                        selectedPaymentMethod === 'crypto'
+                          ? 'border-brand-500/40 bg-brand-500/15 text-page'
+                          : 'border-page-divider bg-page-surface/40 text-page-label hover:bg-page-surface-hover hover:text-page'
+                      }`}
+                    >
+                      {t('topup.cryptoPayment')}
+                    </button>
+                  )}
+                  {redeemCodeShopUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedPaymentMethod('external');
+                        setCryptoDetailsOpen(false);
+                        openRedeemCodeShop();
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                        selectedPaymentMethod === 'external'
+                          ? 'border-brand-500/40 bg-brand-500/15 text-page'
+                          : 'border-page-divider bg-page-surface/40 text-page-label hover:bg-page-surface-hover hover:text-page'
+                      }`}
+                    >
+                      {redeemCodeShopLabel}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-6">
-              {enableCrypto && availableChains.length > 0 && (
+              {shouldShowCryptoOptions && (
                 <div className="rounded-2xl border border-page-divider bg-page-surface/40 p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-brand-500" />
@@ -759,15 +828,23 @@ export default function Topup() {
                 <p className="text-xs text-page-secondary mb-1">{t('topup.walletAddress')}</p>
                 <p className="text-sm text-page font-mono break-all">{cryptoOrder.wallet}</p>
               </div>
+              <div className="rounded-xl border-2 border-amber-400/60 bg-amber-500/10 p-4">
+                <p className="mb-2 text-xs font-semibold text-page-warning">{t('topup.exactAmountLabel')}</p>
+                <p className="break-all font-mono text-2xl font-bold text-page-warning">{cryptoOrder.amount} {cryptoOrder.token}</p>
+                <p className="mt-2 text-xs leading-relaxed text-page-warning">{t('topup.exactAmountNotice')}</p>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="glass-sm rounded-xl p-3">
                   <p className="text-xs text-page-secondary mb-1">{t('topup.amount')}</p>
-                  <p className="text-sm text-page font-medium">{cryptoOrder.amount} {cryptoOrder.token}</p>
+                  <p className="text-sm text-page font-medium font-mono">{cryptoOrder.amount} {cryptoOrder.token}</p>
                 </div>
                 <div className="glass-sm rounded-xl p-3">
                   <p className="text-xs text-page-secondary mb-1">{t('topup.chain')}</p>
                   <p className="text-sm text-page font-medium">{selectedChainLabel || cryptoOrder.chain}</p>
                 </div>
+              </div>
+              <div className="rounded-xl border border-amber-400/30 bg-amber-500/5 p-3 text-xs leading-relaxed text-page-warning">
+                {t('topup.exactAmountDetail')}
               </div>
               {cryptoPolling && (
                 <div className="flex items-center gap-2 text-sm text-page-secondary">

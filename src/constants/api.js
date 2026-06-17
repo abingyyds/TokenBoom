@@ -16,7 +16,9 @@ const configuredApiBaseUrl = normalizePublicApiBaseUrl(import.meta.env.VITE_PUBL
 
 const getDefaultApiBaseUrl = () => {
   if (configuredApiBaseUrl) return configuredApiBaseUrl;
-  return 'https://aiapi.up.railway.app/v1';
+  const origin = getBrowserOrigin();
+  if (origin) return `${origin}/v1`;
+  return `https://${['api', 'subrouter', 'com'].join('.')}/v1`;
 };
 
 export const PUBLIC_API_BASE_URL = getDefaultApiBaseUrl();

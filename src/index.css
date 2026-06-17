@@ -321,8 +321,8 @@
   .theme-saas .glass-sm {
     border-color: rgba(34,211,238,0.22);
     background: rgba(18,11,47,0.82);
-    box-shadow: 0 18px 54px rgba(6,182,212,0.12);
-    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 24px rgba(6,182,212,0.08);
+    backdrop-filter: none;
   }
 
   .theme-saas .btn-primary,
@@ -1470,10 +1470,10 @@
 .theme-saas .coss-card-frame,
 .theme-saas .coss-card-muted {
   border-color: rgba(34,211,238,0.2);
-  background: rgba(18,11,47,0.82);
+  background: rgba(18,11,47,0.9);
   color: #f8fafc;
-  box-shadow: 0 18px 56px rgba(6,182,212,0.12);
-  backdrop-filter: blur(18px);
+  box-shadow: 0 8px 22px rgba(6,182,212,0.08);
+  backdrop-filter: none;
 }
 
 .theme-saas .coss-card-muted {
@@ -1536,7 +1536,7 @@
   border-color: rgba(34,211,238,0.28);
   background: linear-gradient(90deg, rgba(34,211,238,0.16), rgba(236,72,153,0.14));
   color: #e0fbff;
-  box-shadow: 0 10px 30px rgba(6,182,212,0.12);
+  box-shadow: 0 6px 16px rgba(6,182,212,0.08);
 }
 
 .theme-saas .coss-icon-tile {
@@ -1550,7 +1550,7 @@
   background: linear-gradient(90deg, #22d3ee, #bef264 52%, #ec4899);
   color: #0b061f;
   font-weight: 900;
-  box-shadow: 0 14px 34px rgba(34,211,238,0.24);
+  box-shadow: 0 8px 18px rgba(34,211,238,0.16);
 }
 
 .theme-saas .coss-button-primary:hover {
@@ -1905,14 +1905,7 @@
 }
 
 .tokenboom-splash__blast {
-  position: absolute;
-  width: min(80vw, 620px);
-  aspect-ratio: 1;
-  border-radius: 9999px;
-  background: conic-gradient(from 130deg, #22d3ee, #bef264, #ec4899, #22d3ee);
-  opacity: 0.2;
-  filter: blur(18px);
-  animation: tokenboom-splash-spin 3.4s linear infinite;
+  display: none;
 }
 
 .tokenboom-splash__coin {
@@ -1927,9 +1920,9 @@
   border-radius: 30px;
   background: rgba(255,255,255,0.08);
   box-shadow:
-    0 0 0 10px rgba(34,211,238,0.04),
-    0 26px 90px rgba(236,72,153,0.22);
-  animation: tokenboom-splash-pop 0.68s cubic-bezier(0.2, 0.8, 0.2, 1) both, tokenboom-splash-float 1.9s ease-in-out 0.7s infinite;
+    0 0 0 8px rgba(34,211,238,0.04),
+    0 14px 42px rgba(236,72,153,0.16);
+  animation: tokenboom-splash-pop 0.68s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .tokenboom-splash__coin img {

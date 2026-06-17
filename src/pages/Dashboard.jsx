@@ -7,10 +7,12 @@ import {
   BarChart3,
   Banknote,
   CreditCard,
+  FileText,
   KeyRound,
   Link2,
   Repeat2,
   Sparkles,
+  UserCircle,
   Wallet,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -393,9 +395,13 @@ export default function Dashboard() {
         >
           <div className="grid gap-3 sm:grid-cols-2">
             <QuickLinkCard to="/tokens" title={t('dashboard.apiKeys')} desc={t('dashboard.manageKeys')} icon={KeyRound} />
-            <QuickLinkCard to="/packages" title={t('dashboard.packages')} desc="Manage subscription billing" icon={Banknote} />
+            <QuickLinkCard to="/packages" title={t('dashboard.packages')} desc="Buy packages with account balance" icon={Banknote} />
             <QuickLinkCard to="/pricing" title={t('dashboard.pricing')} desc={t('dashboard.modelPrices')} icon={Sparkles} />
             <QuickLinkCard to="/logs" title={t('dashboard.logs')} desc={t('dashboard.viewLogs')} icon={Activity} />
+            <QuickLinkCard to="/account" title={t('dashboard.account')} desc={t('dashboard.accountDesc')} icon={UserCircle} />
+            {site?.enable_invoice && (
+              <QuickLinkCard to="/account#invoice" title={t('dashboard.invoice')} desc={t('dashboard.invoiceDesc')} icon={FileText} />
+            )}
             {site?.allow_sub_dist && (
               <QuickLinkCard to="/sub-site" title={t('subDist.nav')} desc={t('subDist.dashboardEntry')} icon={Link2} />
             )}

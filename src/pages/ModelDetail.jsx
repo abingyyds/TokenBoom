@@ -43,6 +43,14 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { usePublicApiBaseUrl } from '../context/SiteContext';
 
+const TOKENBOOM_PRICE_MULTIPLIER = 0.8;
+
+const discounted = (value) => {
+  if (value === undefined || value === null || value === '') return value;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric * TOKENBOOM_PRICE_MULTIPLIER : value;
+};
+
 export default function ModelDetail() {
   const { modelId } = useParams();
   const { user } = useAuth();
@@ -238,9 +246,9 @@ export default function ModelDetail() {
 
           <CossCardFrame className="overflow-hidden">
             <div className="border-b border-page-divider bg-page-surface/40 px-5 py-4">
-              <h2 className="text-xl font-semibold text-page">Official price table</h2>
+              <h2 className="text-xl font-semibold text-page">TokenBoom price table</h2>
               <p className="mt-2 text-sm leading-6 text-page-secondary">
-                Prices come from the public pricing feed. Token models show the USD input and output values returned by that feed.
+                TokenBoom prices are 20% off official pricing. Official values are shown for comparison.
               </p>
             </div>
             <div className="hidden overflow-x-auto md:block">
@@ -262,15 +270,15 @@ export default function ModelDetail() {
               <MobilePriceRow label="Billing" value={billingLabel(officialPricing)} />
               <MobilePriceRow
                 label="Input USD"
-                value={officialPricing?.type === 'token' ? formatOfficialTokenPrice(officialPricing.inputPrice ?? officialPricing.inputRatio) : '-'}
+                value={officialPricing?.type === 'token' ? formatDiscountedTokenPrice(officialPricing.inputPrice ?? officialPricing.inputRatio) : '-'}
               />
               <MobilePriceRow
                 label="Output USD"
-                value={officialPricing?.type === 'token' ? formatOfficialTokenPrice(officialPricing.outputPrice ?? officialPricing.outputRatio) : '-'}
+                value={officialPricing?.type === 'token' ? formatDiscountedTokenPrice(officialPricing.outputPrice ?? officialPricing.outputRatio) : '-'}
               />
               <MobilePriceRow
                 label="Per call"
-                value={officialPricing?.type === 'per_call' ? formatOfficialPerCall(officialPricing.modelPrice) : '-'}
+                value={officialPricing?.type === 'per_call' ? formatDiscountedPerCall(officialPricing.modelPrice) : '-'}
               />
             </div>
           </CossCardFrame>
@@ -309,15 +317,46 @@ function PriceRow({ officialPricing }) {
     <tr className="border-b border-page-divider last:border-0">
       <td className="px-5 py-4 font-medium text-page">{billingLabel(officialPricing)}</td>
       <td className="px-5 py-4 text-right font-mono text-page-secondary">
-        {officialPricing?.type === 'token' ? formatOfficialTokenPrice(officialPricing.inputPrice ?? officialPricing.inputRatio) : '-'}
+        {officialPricing?.type === 'token'
+          ? <DiscountedPrice value={officialPricing.inputPrice ?? officialPricing.inputRatio} formatter={formatOfficialTokenPrice} />
+          : '-'}
       </td>
       <td className="px-5 py-4 text-right font-mono text-page-secondary">
-        {officialPricing?.type === 'token' ? formatOfficialTokenPrice(officialPricing.outputPrice ?? officialPricing.outputRatio) : '-'}
+        {officialPricing?.type === 'token'
+          ? <DiscountedPrice value={officialPricing.outputPrice ?? officialPricing.outputRatio} formatter={formatOfficialTokenPrice} />
+          : '-'}
       </td>
       <td className="px-5 py-4 text-right font-mono text-page-secondary">
-        {officialPricing?.type === 'per_call' ? formatOfficialPerCall(officialPricing.modelPrice) : '-'}
+        {officialPricing?.type === 'per_call'
+          ? <DiscountedPrice value={officialPricing.modelPrice} formatter={formatOfficialPerCall} />
+          : '-'}
       </td>
     </tr>
+  );
+}
+
+function formatDiscountedTokenPrice(value) {
+  const official = formatOfficialTokenPrice(value);
+  const current = formatOfficialTokenPrice(discounted(value));
+  return current === '-' ? '-' : `${current} (20% off, official ${official})`;
+}
+
+function formatDiscountedPerCall(value) {
+  const official = formatOfficialPerCall(value);
+  const current = formatOfficialPerCall(discounted(value));
+  return current === '-' ? '-' : `${current} (20% off, official ${official})`;
+}
+
+function DiscountedPrice({ value, formatter }) {
+  const official = formatter(value);
+  const current = formatter(discounted(value));
+  if (current === '-') return '-';
+  return (
+    <span className="inline-flex flex-col items-end gap-0.5">
+      <span className="text-page">{current}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-page-success">20% off</span>
+      {official !== '-' && <span className="text-[11px] text-page-muted line-through">Official {official}</span>}
+    </span>
   );
 }
 

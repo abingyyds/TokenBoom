@@ -13,6 +13,7 @@ const distDir = path.resolve(process.env.STATIC_DIR || path.join(rootDir, 'dist'
 const port = Number(process.env.PORT || 8080);
 const subrouterBase = process.env.SUBROUTER_API_BASE || 'http://localhost:3000';
 const subrouterSiteHost = normalizeHost(process.env.SUBROUTER_SITE_HOST || '');
+const subrouterProxyTimeoutMs = Number(process.env.SUBROUTER_PROXY_TIMEOUT_MS || 20000);
 
 const hopByHopHeaders = new Set([
   'connection',
@@ -195,6 +196,12 @@ function proxySubRouter(req, res) {
       success: false,
       message: `SubRouter proxy failed: ${detail}`,
     });
+  });
+
+  upstreamReq.setTimeout(subrouterProxyTimeoutMs, () => {
+    const error = new Error(`SubRouter proxy timed out after ${subrouterProxyTimeoutMs}ms`);
+    error.code = 'ETIMEDOUT';
+    upstreamReq.destroy(error);
   });
 
   req.pipe(upstreamReq);

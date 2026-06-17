@@ -1,5 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import i18n from './i18n';
+import { getStoredAppLanguage, normalizeAppLanguage } from './i18n/languageUtils';
 
 export const Q = 500000; // QuotaPerUnit — single source of truth
 
@@ -84,8 +86,11 @@ const previewSite = (theme = 'saas') => ({
   name: 'TokenBoomAi',
   theme_template: theme || 'saas',
   enable_topup: true,
+  enable_invoice: false,
   top_up_link: 'https://example.com/redeem-codes',
+  top_up_link_name: 'Redeem Code Shop',
   allow_sub_dist: false,
+  show_app_market: true,
   currency: {
     code: 'USD',
     symbol: '$',
@@ -100,6 +105,9 @@ const devPublicResponse = (requestFn, data) =>
 const PUBLIC_CACHE_TTL_MS = 5 * 60 * 1000;
 const publicRequestCache = new Map();
 const PUBLIC_REQUEST_TIMEOUT_MS = 6000;
+const SUBSCRIPTION_REQUEST_TIMEOUT_MS = 6000;
+const CHECKOUT_SYNC_TIMEOUT_MS = 8000;
+const CHECKOUT_MUTATION_TIMEOUT_MS = 15000;
 export const AUTH_RESTORE_TIMEOUT_MS = 8000;
 const DIST_USER_ID_KEY = 'dist_user_id';
 
@@ -246,6 +254,11 @@ api.interceptors.request.use((config) => {
   if (userId) {
     setHeader(config.headers, 'New-Api-User', userId);
   }
+  setHeader(
+    config.headers,
+    'Accept-Language',
+    normalizeAppLanguage(getStoredAppLanguage() || i18n.resolvedLanguage || navigator.language),
+  );
   sanitizeHeaders(config.headers);
   return config;
 });
@@ -370,6 +383,7 @@ export const logout = () => api.post('/api/dist/user/logout');
 
 // ===== User =====
 export const getUserSelf = (config) => api.get('/api/dist/user/self', config);
+export const updateUserPassword = (data) => api.put('/api/dist/user/password', data);
 export const getUserUsage = () => api.get('/api/dist/user/usage');
 export const getUserLogs = (params) => api.get('/api/dist/user/logs', { params });
 export const getUserLogsStat = (params) => api.get('/api/dist/user/logs/stat', { params });
@@ -385,9 +399,16 @@ export const deleteToken = (id) => api.delete(`/api/dist/token/${id}`);
 
 // ===== Purchase =====
 export const redeemCode = (key) => api.post('/api/dist/topup/redeem', { key }); // backend field is "key"
-export const subscribePackage = (packageId, config) => api.post('/api/dist/package/subscribe', { package_id: packageId }, config);
+export const subscribePackage = (packageId, config) =>
+  api.post('/api/dist/package/subscribe', { package_id: packageId }, {
+    timeout: CHECKOUT_MUTATION_TIMEOUT_MS,
+    ...config,
+  });
 export const getActiveSubscriptions = (config) =>
-  api.get('/api/dist/package/subscriptions', config);
+  api.get('/api/dist/package/subscriptions', {
+    timeout: SUBSCRIPTION_REQUEST_TIMEOUT_MS,
+    ...config,
+  });
 // ===== Online Topup =====
 export const getTopupInfo = () => api.get('/api/dist/topup/info');
 export const calculateAmount = (data) => api.post('/api/dist/topup/amount', data);
@@ -398,15 +419,29 @@ export const createCryptoOrder = (data) => api.post('/api/dist/topup/crypto/pay'
 export const getCryptoOrderStatus = (tradeNo) => api.get(`/api/dist/topup/crypto/status?trade_no=${tradeNo}`);
 export const getTopupHistory = (params) => api.get('/api/dist/topup/history', { params });
 
+// ===== Invoice =====
+export const getInvoiceInfo = () => api.get('/api/dist/invoice/info');
+export const getInvoiceHistory = (params) => api.get('/api/dist/invoice/history', { params });
+export const createInvoice = (data) => api.post('/api/dist/invoice', data);
+
 // ===== Site-owned SaaS billing =====
 // These endpoints belong to this distributor site, not to SubRouter.
 // The site SaaS backend owns Creem checkout, webhook handling, and redemption code pools.
 export const getSiteSaasSubscriptions = (config) =>
-  api.get('/api/site/saas/subscriptions', config);
+  api.get('/api/site/saas/subscriptions', {
+    timeout: SUBSCRIPTION_REQUEST_TIMEOUT_MS,
+    ...config,
+  });
 export const createSiteSaasCheckout = (data, config) =>
-  api.post('/api/site/saas/checkout', data, config);
+  api.post('/api/site/saas/checkout', data, {
+    timeout: CHECKOUT_MUTATION_TIMEOUT_MS,
+    ...config,
+  });
 export const syncSiteSaasCheckout = (data, config) =>
-  api.post('/api/site/saas/checkout/sync', data, config);
+  api.post('/api/site/saas/checkout/sync', data, {
+    timeout: CHECKOUT_SYNC_TIMEOUT_MS,
+    ...config,
+  });
 export const getSiteSaasAdminState = (token) =>
   api.get('/api/site/admin/saas/state', {
     skipErrorHandler: true,

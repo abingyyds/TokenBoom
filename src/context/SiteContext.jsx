@@ -10,8 +10,11 @@ const DEFAULT_SITE = {
   favicon: '/favicon.png',
   theme_template: 'saas',
   enable_topup: true,
+  enable_invoice: false,
   top_up_link: '',
+  top_up_link_name: '',
   allow_sub_dist: false,
+  show_app_market: true,
   public_api_base_url: PUBLIC_API_BASE_URL,
   currency: {
     code: 'USD',
@@ -176,8 +179,11 @@ export function SiteProvider({ children }) {
         name: 'TokenBoomAi',
         theme_template: previewTheme,
         enable_topup: true,
+        enable_invoice: false,
         top_up_link: 'https://example.com/redeem-codes',
+        top_up_link_name: 'Redeem Code Shop',
         allow_sub_dist: false,
+        show_app_market: true,
         currency: {
           code: 'USD',
           symbol: '$',

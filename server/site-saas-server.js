@@ -13,6 +13,8 @@ const rootDir = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT || process.env.SITE_SAAS_PORT || 8787);
 const storePath = process.env.SITE_SAAS_STORE || path.join(rootDir, 'data', 'site-saas-store.json');
 const activatingOrders = new Set();
+const outboundRequestTimeoutMs = Number(process.env.SITE_SAAS_OUTBOUND_TIMEOUT_MS || 15000);
+const creemRequestTimeoutMs = Number(process.env.CREEM_REQUEST_TIMEOUT_MS || 12000);
 
 const defaultStore = {
   config: {
@@ -264,7 +266,7 @@ function hasSuccessfulWebhookEvent(store, eventId) {
   ));
 }
 
-function requestJson(url, { method = 'GET', headers = {}, body = '' } = {}) {
+function requestJson(url, { method = 'GET', headers = {}, body = '', timeoutMs = outboundRequestTimeoutMs } = {}) {
   return new Promise((resolve, reject) => {
     const target = new URL(url);
     const transport = target.protocol === 'https:' ? https : http;
@@ -297,9 +299,32 @@ function requestJson(url, { method = 'GET', headers = {}, body = '' } = {}) {
       },
     );
     req.on('error', reject);
+    req.setTimeout(timeoutMs, () => {
+      const error = new Error(`Request to ${target.host} timed out after ${timeoutMs}ms`);
+      error.code = 'ETIMEDOUT';
+      req.destroy(error);
+    });
     if (body) req.write(body);
     req.end();
   });
+}
+
+async function fetchJsonWithTimeout(url, { timeoutMs = creemRequestTimeoutMs, ...options } = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`Request to ${new URL(url).host} timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function normalizePlaygroundPath(value) {
@@ -637,7 +662,7 @@ async function createCreemCheckout(store, { order, productId, returnUrl, units =
   );
   const url = new URL(config.creem_checkout_path, config.creem_api_base_url).toString();
   const payload = checkoutPayload({ order, productId, returnUrl, units });
-  const response = await fetch(url, {
+  const response = await fetchJsonWithTimeout(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -674,7 +699,7 @@ async function retrieveCreemCheckout(store, checkoutId) {
   );
   const url = new URL(config.creem_checkout_path, config.creem_api_base_url);
   url.searchParams.set('checkout_id', cleanCheckoutId);
-  const response = await fetch(url.toString(), {
+  const response = await fetchJsonWithTimeout(url.toString(), {
     method: 'GET',
     headers: {
       'x-api-key': creemApiKey,

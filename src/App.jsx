@@ -2,6 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import AuthGuard from './components/AuthGuard';
 import NotificationBell from './components/NotificationBell';
+import { useSite } from './context/SiteContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 const Login = lazy(() => import('./pages/Login'));
@@ -20,8 +21,19 @@ const Logs = lazy(() => import('./pages/Logs'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const SubDistributor = lazy(() => import('./pages/SubDistributor'));
 const SaasAdmin = lazy(() => import('./pages/SaasAdmin'));
+const Account = lazy(() => import('./pages/Account'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+
+function AppMarketRoute() {
+  const { site } = useSite();
+
+  if (site?.show_app_market === false) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Apps />;
+}
 
 const Loading = () => (
   <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--page-bg)' }}>
@@ -47,7 +59,7 @@ function ThemedRoutes() {
           <Route path="/playground" element={<Playground />} />
           <Route path="/docs" element={<DocsQuickstart />} />
           <Route path="/docs/quickstart" element={<DocsQuickstart />} />
-          <Route path="/apps" element={<Apps />} />
+          <Route path="/apps" element={<AppMarketRoute />} />
           <Route path="/pricing" element={<Navigate to="/models?sort=price" replace />} />
           <Route path="/packages" element={<Packages />} />
           <Route path="/sub-site" element={<SubDistributor />} />
@@ -64,6 +76,7 @@ function ThemedRoutes() {
             <Route path="/logs" element={<Logs />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/topup" element={<Topup />} />
+            <Route path="/account" element={<Account />} />
           </Route>
         </Route>
 

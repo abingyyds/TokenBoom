@@ -53,8 +53,13 @@ export const DOCS_CATALOG_QUERY = Object.freeze({
 });
 
 const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
+const CATALOG_STALE_TTL_MS = 24 * 60 * 60 * 1000;
+const CATALOG_STORAGE_PREFIX = 'public-model-catalog-cache:';
 const catalogCache = new Map();
 const rankedCatalogCache = new Map();
+const RANKED_METRICS_MODEL_LIMIT = 24;
+const RANKED_METRICS_PAGE_LIMIT = 2;
+const RANKED_METRICS_CONCURRENCY = 4;
 
 const stableCacheKey = (value) => {
   if (Array.isArray(value)) {
@@ -148,7 +153,7 @@ const fetchMarketplaceRowsForSiteModel = async (siteModel, query) => {
   const pageSize = 200;
   const rows = [];
 
-  for (let page = 1; page <= 10; page += 1) {
+  for (let page = 1; page <= RANKED_METRICS_PAGE_LIMIT; page += 1) {
     const response = await getMarketplaceModels({
       ...query,
       keyword,
@@ -164,11 +169,18 @@ const fetchMarketplaceRowsForSiteModel = async (siteModel, query) => {
 };
 
 const fetchMarketplaceMetricsForSiteModels = async (siteModels, query) => {
-  const requests = siteModels.map(async (siteModel) => {
-    const rows = await fetchMarketplaceRowsForSiteModel(siteModel, query);
-    return [getModelId(siteModel), summarizeMarketplaceRows(rows, siteModel)];
-  });
-  const entries = await Promise.all(requests);
+  const entries = [];
+  const models = siteModels.slice(0, RANKED_METRICS_MODEL_LIMIT);
+
+  for (let index = 0; index < models.length; index += RANKED_METRICS_CONCURRENCY) {
+    const batch = models.slice(index, index + RANKED_METRICS_CONCURRENCY);
+    const batchEntries = await Promise.all(batch.map(async (siteModel) => {
+      const rows = await fetchMarketplaceRowsForSiteModel(siteModel, query);
+      return [getModelId(siteModel), summarizeMarketplaceRows(rows, siteModel)];
+    }));
+    entries.push(...batchEntries);
+  }
+
   return new Map(entries.filter(([, metrics]) => metrics));
 };
 
@@ -200,6 +212,31 @@ const mergeSiteModelsWithMetricsMap = (siteModels, metricsMap) =>
   }), 'popular');
 
 const cacheKeyFor = (query) => stableCacheKey(query);
+
+const storageKeyFor = (query) => `${CATALOG_STORAGE_PREFIX}${cacheKeyFor(query)}`;
+
+const readStoredCatalog = (query) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = JSON.parse(window.localStorage.getItem(storageKeyFor(query)) || 'null');
+    if (!cached?.result || !cached.cachedAt || Date.now() - cached.cachedAt > CATALOG_STALE_TTL_MS) return null;
+    return cached.result;
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredCatalog = (query, result) => {
+  if (typeof window === 'undefined' || !result?.models?.length) return;
+  try {
+    window.localStorage.setItem(storageKeyFor(query), JSON.stringify({
+      result,
+      cachedAt: Date.now(),
+    }));
+  } catch {
+    // Storage pressure should not break catalog loading.
+  }
+};
 
 const FALLBACK_MODELS = [
   { id: 'gpt-4o-mini', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', category: 'Chat', enabled: true },
@@ -261,6 +298,7 @@ export const getPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => {
         result,
         expiresAt: Date.now() + CATALOG_CACHE_TTL_MS,
       });
+      writeStoredCatalog(query, result);
       return result;
     })
     .catch((error) => {
@@ -272,7 +310,7 @@ export const getPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => {
   return promise;
 };
 
-export const readPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => readCatalogCache(query) || fallbackCatalog;
+export const readPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => readCatalogCache(query) || readStoredCatalog(query) || fallbackCatalog;
 
 export const getRankedModelCatalog = async (query = PUBLIC_CATALOG_QUERY) => {
   const key = `ranked:${cacheKeyFor(query)}`;

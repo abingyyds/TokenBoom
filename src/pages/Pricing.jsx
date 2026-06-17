@@ -52,11 +52,11 @@ export default function Pricing() {
           <div className="max-w-3xl">
             <p className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-page-link">
               <CreditCard size={15} />
-              Official pricing
+              TokenBoom pricing
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-normal text-page sm:text-4xl">{t('pricing.title')}</h1>
             <p className="mt-4 text-base leading-7 text-page-secondary">
-              Public prices are merged from the official pricing feed and shown by model family. Route-specific marketplace prices are not displayed.
+              TokenBoom prices are shown at 20% off official pricing for every listed model family.
             </p>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function Pricing() {
                   <tr className="border-b border-page-divider bg-page-surface/40 text-left text-page-muted">
                     <th className="px-5 py-3.5 font-medium">{t('pricing.model')}</th>
                     <th className="px-5 py-3.5 font-medium">Category</th>
-                    <th className="px-5 py-3.5 text-right font-medium">Official price</th>
+                    <th className="px-5 py-3.5 text-right font-medium">TokenBoom price</th>
                     <th className="px-5 py-3.5 text-right font-medium">Actions</th>
                   </tr>
                 </thead>

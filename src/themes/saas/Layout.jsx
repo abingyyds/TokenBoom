@@ -16,6 +16,7 @@ import {
   Menu,
   MessageSquareText,
   PackageCheck,
+  UserCog,
   Settings2,
   Trophy,
   UserCircle,
@@ -42,14 +43,16 @@ export default function SaasLayout() {
   const siteName = site?.name || 'TokenBoomAi';
   const isAdmin = user?.is_admin || user?.role === 'admin';
   const displayName = user?.display_name || user?.username || user?.email;
-  const accountPrimary = user?.email || displayName || 'Account';
-  const accountSecondary = displayName && displayName !== accountPrimary ? displayName : 'Account';
+  const accountLabel = t('nav.account');
+  const accountPrimary = user?.email || displayName || accountLabel;
+  const accountSecondary = displayName && displayName !== accountPrimary ? displayName : accountLabel;
   const consolePath = user ? '/dashboard' : '/login';
   const publicNavItems = [
     { to: '/', label: 'Home', icon: Home, exact: true },
     { to: '/models', label: 'Models', icon: Boxes, prefix: '/models' },
     { to: '/rankings', label: 'Rankings', icon: Trophy },
     { to: '/playground', label: 'Playground', icon: MessageSquareText, aliases: ['/chat'] },
+    ...(site?.show_app_market === false ? [] : [{ to: '/apps', label: t('nav.apps'), icon: Layers3 }]),
     { to: '/docs/quickstart', label: 'Docs', icon: BookOpen, prefix: '/docs' },
   ];
   const consoleMenuItems = [
@@ -58,7 +61,8 @@ export default function SaasLayout() {
     { to: '/topup', label: 'Recharge / Top up', icon: CreditCard, auth: true },
     { to: '/logs', label: 'Call logs', icon: BarChart3, auth: true },
     { to: '/tasks', label: 'Tasks', icon: Layers3, auth: true },
-    { to: '/packages', label: 'Packages / Plans', icon: PackageCheck },
+    { to: '/packages', label: 'Packages', icon: PackageCheck },
+    { to: '/account', label: accountLabel, icon: UserCog, auth: true },
     ...(site?.allow_sub_dist ? [{ to: '/sub-site', label: 'Sub-site / Distributor', icon: Building2 }] : []),
     ...(isAdmin ? [{ to: '/site-admin/saas', label: 'SaaS Admin', icon: Settings2, auth: true }] : []),
   ];
@@ -66,9 +70,9 @@ export default function SaasLayout() {
     to: consolePath,
     label: 'Console',
     icon: LayoutDashboard,
-    aliases: ['/dashboard', '/tokens', '/logs', '/tasks', '/topup', '/packages', '/sub-site', '/site-admin/saas'],
+    aliases: ['/dashboard', '/tokens', '/logs', '/tasks', '/topup', '/packages', '/account', '/sub-site', '/site-admin/saas'],
   };
-  const consoleShellPaths = ['/dashboard', '/tokens', '/logs', '/tasks', '/topup', '/site-admin/saas'];
+  const consoleShellPaths = ['/dashboard', '/tokens', '/logs', '/tasks', '/topup', '/account', '/site-admin/saas'];
   const isConsoleShell = consoleShellPaths.some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
   const isSaasAdminRoute = location.pathname === '/site-admin/saas' || location.pathname.startsWith('/site-admin/saas/');
   const consoleSidebarItems = isSaasAdminRoute && !consoleMenuItems.some((item) => item.to === '/site-admin/saas')
@@ -282,11 +286,23 @@ export default function SaasLayout() {
                       <p className="truncate text-sm font-semibold text-white">{accountPrimary}</p>
                       <p className="truncate text-xs text-slate-400">{accountSecondary}</p>
                     </div>
+                    <Link
+                      to="/account"
+                      role="menuitem"
+                      className={`mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                        isActive({ to: '/account' })
+                          ? 'bg-cyan-300 text-[#0b061f]'
+                          : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <UserCog size={16} />
+                      {accountLabel}
+                    </Link>
                     <button
                       type="button"
                       role="menuitem"
                       onClick={handleLogout}
-                      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-200 transition-colors hover:bg-white/10 hover:text-white"
                     >
                       <LogOut size={16} />
                       {t('nav.logout')}
@@ -377,6 +393,16 @@ export default function SaasLayout() {
                     <p className="truncate text-xs text-slate-400">{accountSecondary}</p>
                   </div>
                   <div className="grid gap-1 pl-3">
+                    <Link
+                      to="/account"
+                      onClick={closeMenus}
+                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                        isActive({ to: '/account' }) ? 'bg-cyan-300 text-[#0b061f]' : 'text-slate-200 hover:bg-white/10'
+                      }`}
+                    >
+                      <UserCog size={15} />
+                      {accountLabel}
+                    </Link>
                     <button
                       type="button"
                       onClick={handleLogout}

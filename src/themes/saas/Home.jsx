@@ -464,8 +464,8 @@ export default function SaasHome() {
         <CossSection data-home-reveal="section">
           <SectionHeader
             eyebrow="Token packs"
-            title="Plans connect token credits, billing, and API access."
-            text="Public package cards stay focused on token firepower while billing, activation, and account controls continue through the existing platform flow."
+            title="Packages connect token credits and API access."
+            text="Public package cards stay focused on token firepower. Buy with account balance, activate credits, and keep usage visible from the console."
             action={{ to: '/packages', label: 'View packages' }}
           />
           <div className="grid gap-4 lg:grid-cols-3">
@@ -509,11 +509,7 @@ function HomeMotionStyles() {
         mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.18));
       }
       .saas-home-burst {
-        background:
-          conic-gradient(from 190deg, rgba(34,211,238,0), rgba(34,211,238,0.14), rgba(236,72,153,0.16), rgba(190,242,100,0.12), rgba(34,211,238,0));
-        filter: blur(10px);
-        opacity: 0.9;
-        animation: tokenboom-hero-spin 13s linear infinite;
+        display: none;
       }
       .saas-home-noise {
         background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
@@ -528,7 +524,7 @@ function HomeMotionStyles() {
         position: absolute;
         inset: 0;
         background: linear-gradient(90deg, transparent, rgba(190, 242, 100, 0.72), rgba(34, 211, 238, 0.55), transparent);
-        animation: saas-home-flow 3.2s ease-in-out infinite;
+        animation: saas-home-flow 4.8s ease-in-out infinite;
       }
       .saas-home-control-line {
         background: linear-gradient(90deg, rgba(34, 211, 238, 0.42), rgba(236, 72, 153, 0.44), rgba(190, 242, 100, 0.34));
@@ -543,7 +539,7 @@ function HomeMotionStyles() {
         position: absolute;
         inset: 0;
         background: linear-gradient(90deg, transparent, rgba(190, 242, 100, 0.42), rgba(34, 211, 238, 0.32), transparent);
-        animation: saas-home-shimmer 1.8s ease-in-out infinite;
+        animation: saas-home-shimmer 2.8s ease-in-out infinite;
       }
       @media (prefers-reduced-motion: reduce) {
         .saas-home-flow::after,
@@ -1079,10 +1075,12 @@ function PackageCard({ pkg, fmtPlanPrice }) {
       </div>
       <div className="mt-6 flex flex-wrap items-end gap-2">
         <span className="text-3xl font-semibold text-page">{fmtPlanPrice(pkg.price, pkg.currency)}</span>
-        <span className="pb-1 text-sm text-page-muted">/{pkg.billing_interval || 'cycle'}</span>
+        {pkg.duration > 0 && (
+          <span className="pb-1 text-sm text-page-muted">{pkg.duration} days</span>
+        )}
       </div>
       <Link to="/packages" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-page-link transition hover:text-page">
-        View plan <ArrowRight size={15} />
+        View package <ArrowRight size={15} />
       </Link>
     </div>
   );
@@ -1091,7 +1089,7 @@ function PackageCard({ pkg, fmtPlanPrice }) {
 function getPackageDescription(pkg) {
   const description = String(pkg?.description || '').trim();
   if (!description || /[\u4e00-\u9fff]/.test(description)) {
-    return 'Managed credits, billing, and access controls for production usage.';
+    return 'Managed credits and access controls for production usage.';
   }
   return description;
 }

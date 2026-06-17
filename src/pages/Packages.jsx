@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import {
@@ -24,14 +24,11 @@ import {
   CossSection,
 } from '../components/public/CossLayout';
 import {
-  createSiteSaasCheckout,
   getActiveSubscriptions,
-  getSiteSaasSubscriptions,
   getSiteModels,
   getSitePackages,
   Q,
   subscribePackage,
-  syncSiteSaasCheckout,
   userRequestConfig,
 } from '../api';
 import { readPublicModelCatalog } from '../utils/publicCatalog';
@@ -53,30 +50,12 @@ function formatDate(value) {
   return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function normalizeInterval(pkg) {
-  const interval = pkg.billing_interval || pkg.interval || pkg.period || '';
-  if (interval) return String(interval).replace(/^every_/, '');
-  if (pkg.duration >= 365) return 'year';
-  if (pkg.duration >= 90) return 'quarter';
-  return 'month';
-}
-
-function getSubscriptionStatus(sub) {
+function getPackageStatus(sub) {
   return String(sub.status || sub.subscription_status || 'active').toLowerCase();
 }
 
 function isBalanceError(message = '') {
   return /balance|余额|insufficient|不足|not enough|quota/i.test(String(message));
-}
-
-function checkoutSyncPayload(searchParams) {
-  const params = Object.fromEntries(searchParams.entries());
-  return {
-    order_id: params.order_id || '',
-    checkout_id: params.checkout_id || '',
-    request_id: params.request_id || '',
-    params,
-  };
 }
 
 function BillingStep({ icon: Icon, title, desc }) {
@@ -92,7 +71,6 @@ function BillingStep({ icon: Icon, title, desc }) {
 export default function Packages() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { user, refreshUser } = useAuth();
   const { fmtPlanPrice, symbol, rate, code, usdRate } = useCurrency();
   const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
@@ -101,29 +79,22 @@ export default function Packages() {
   const [models, setModels] = useState(() => cachedCatalog.models || []);
   const [activeSubs, setActiveSubs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState(null);
   const [balanceLoading, setBalanceLoading] = useState(null);
-  const [checkoutSyncing, setCheckoutSyncing] = useState(false);
   const [confirmBalancePkg, setConfirmBalancePkg] = useState(null);
   const [insufficientPkg, setInsufficientPkg] = useState(null);
 
   const getResetLabel = (period) => t(resetLabelKeys[period] || resetLabelKeys.never);
 
-  const loadSubscriptions = async () => {
+  const loadSubscriptions = useCallback(async () => {
     if (!user) {
       setActiveSubs([]);
       return;
     }
-    const [siteRes, balanceRes] = await Promise.all([
-      getSiteSaasSubscriptions(userRequestConfig(user, { skipErrorHandler: true })).catch(() => null),
-      getActiveSubscriptions(userRequestConfig(user, { skipErrorHandler: true })).catch(() => null),
-    ]);
-    const siteSubscriptions = (siteRes?.data?.success ? siteRes.data.data || [] : [])
-      .map((item) => ({ ...item, billing_source: item.billing_source || 'subscription' }));
+    const balanceRes = await getActiveSubscriptions(userRequestConfig(user, { skipErrorHandler: true })).catch(() => null);
     const balanceSubscriptions = (balanceRes?.data?.success ? balanceRes.data.data || [] : [])
       .map((item) => ({ ...item, billing_source: item.billing_source || 'balance' }));
-    setActiveSubs([...siteSubscriptions, ...balanceSubscriptions]);
-  };
+    setActiveSubs(balanceSubscriptions);
+  }, [user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -149,63 +120,23 @@ export default function Packages() {
   }, []);
 
   useEffect(() => {
-    loadSubscriptions();
-  }, [user]);
-
-  useEffect(() => {
-    const checkoutStatus = searchParams.get('checkout_status') || searchParams.get('status') || searchParams.get('payment');
-    if (!user || !checkoutStatus) return;
-
-    const sync = async () => {
-      if (checkoutStatus === 'success' || checkoutStatus === 'return') {
-        setCheckoutSyncing(true);
-        const toastId = toast.loading('Confirming payment and activating subscription...');
-        try {
-          const res = await syncSiteSaasCheckout(
-            checkoutSyncPayload(searchParams),
-            userRequestConfig(user, { skipErrorHandler: true }),
-          );
-          const result = res.data?.data || {};
-          if (res.data?.success || result.status === 'activated') {
-            toast.success('Subscription activated.', { id: toastId });
-          } else if (result.status === 'pending') {
-            toast.success('Checkout returned. Activation will retry automatically after payment confirmation.', { id: toastId });
-          } else {
-            toast.error(res.data?.message || result.message || 'Payment confirmed, but activation is still pending.', { id: toastId });
-          }
-        } catch (error) {
-          toast.error(error.response?.data?.message || 'Payment confirmed, but activation is still pending.', { id: toastId });
-        } finally {
-          setCheckoutSyncing(false);
-        }
-      } else if (checkoutStatus === 'cancelled' || checkoutStatus === 'cancel') {
-        toast.error('Checkout was cancelled.');
-      }
-      await Promise.all([refreshUser({ skipErrorHandler: true }), loadSubscriptions()]);
-      setSearchParams({}, { replace: true });
-    };
-
-    sync();
-  }, [user, searchParams, setSearchParams, refreshUser]);
-
-  useEffect(() => {
-    if (!user) return;
     let cancelled = false;
-    const syncLatest = async () => {
+    const load = async () => {
+      if (!user) {
+        setActiveSubs([]);
+        return;
+      }
       try {
-        const res = await syncSiteSaasCheckout({}, userRequestConfig(user, { skipErrorHandler: true }));
-        if (!cancelled && res.data?.data?.status === 'activated') {
-          await Promise.all([refreshUser({ skipErrorHandler: true }), loadSubscriptions()]);
-        }
+        await loadSubscriptions();
       } catch {
-        // A missing or still-unpaid checkout should not interrupt normal package browsing.
+        if (!cancelled) setActiveSubs([]);
       }
     };
-    syncLatest();
+    load();
     return () => {
       cancelled = true;
     };
-  }, [user, refreshUser]);
+  }, [user, loadSubscriptions]);
 
   const enabledPackages = useMemo(
     () => packages.filter((pkg) => pkg.enabled !== false),
@@ -281,35 +212,6 @@ export default function Packages() {
     }
   };
 
-  const handleSubscribe = async (pkg) => {
-    if (!user) {
-      navigate('/register');
-      return;
-    }
-
-    setCheckoutLoading(pkg.id);
-    try {
-      const returnUrl = `${window.location.origin}/packages?checkout_status=success`;
-      const res = await createSiteSaasCheckout({
-        package_id: pkg.id,
-        package_name: pkg.name,
-        billing_interval: normalizeInterval(pkg),
-        return_url: returnUrl,
-      }, userRequestConfig(user));
-
-      const checkoutUrl = res.data?.data?.checkout_url || res.data?.data?.pay_link || res.data?.checkout_url;
-      if ((res.data?.success || res.data?.message === 'success') && checkoutUrl) {
-        window.location.href = checkoutUrl;
-      } else {
-        toast.error(res.data?.message || 'Site SaaS billing is not configured yet.');
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Site SaaS billing is not configured yet.');
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
-
   if (loading) {
     return (
       <CossPage className="flex min-h-[60vh] items-center justify-center">
@@ -323,8 +225,8 @@ export default function Packages() {
       <CossPageHeader
         eyebrow="Packages"
         icon={RefreshCcw}
-        title="Choose balance purchase or subscription."
-        description="Use your existing account balance for a one-time package purchase, or start a recurring subscription through the SaaS checkout flow."
+        title="Choose a balance package."
+        description="Use your existing account balance to buy a package immediately. Top up first if your balance is not enough."
       />
 
       {activeSubs.length > 0 && (
@@ -333,7 +235,7 @@ export default function Packages() {
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-page">{t('packages.mySubscriptions')}</h2>
-                <p className="mt-1 text-sm text-page-muted">Your active plans, renewal windows, and available credits are managed automatically.</p>
+                <p className="mt-1 text-sm text-page-muted">Your active packages and available credits are managed automatically.</p>
               </div>
             </div>
 
@@ -344,15 +246,15 @@ export default function Packages() {
                 const used = sub.amount_used || sub.used_quota || 0;
                 const remain = Math.max(0, total - used);
                 const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
-                const status = getSubscriptionStatus(sub);
+                const status = getPackageStatus(sub);
 
                 return (
-                  <CossMutedCard key={`${sub.billing_source || 'subscription'}-${sub.id}`} className="p-4">
+                  <CossMutedCard key={`${sub.billing_source || 'balance'}-${sub.id}`} className="p-4">
                     <div className="mb-4 flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-page">{pkg?.name || sub.package_name || t('packages.subscriptionId', { id: sub.id })}</p>
                         <p className="mt-1 text-xs text-page-muted">
-                          {sub.billing_source === 'balance' ? 'Balance package' : 'Site subscription'} #{sub.id}
+                          Balance package #{sub.id}
                         </p>
                       </div>
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -367,12 +269,12 @@ export default function Packages() {
                     </div>
                     <div className="mb-3 grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <p className="text-xs text-page-muted">Current period ends</p>
-                        <p className="mt-1 font-medium text-page">{formatDate(sub.current_period_end || sub.end_time)}</p>
+                        <p className="text-xs text-page-muted">Expires</p>
+                        <p className="mt-1 font-medium text-page">{formatDate(sub.end_time || sub.current_period_end)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-page-muted">Next renewal</p>
-                        <p className="mt-1 font-medium text-page">{formatDate(sub.next_renewal_time || sub.next_reset_time || sub.current_period_end)}</p>
+                        <p className="text-xs text-page-muted">Next reset</p>
+                        <p className="mt-1 font-medium text-page">{formatDate(sub.next_reset_time)}</p>
                       </div>
                     </div>
                     <div className="mb-1 flex items-center justify-between text-xs text-page-muted">
@@ -401,10 +303,13 @@ export default function Packages() {
         ) : (
           <div className="grid gap-4 lg:grid-cols-3">
             {enabledPackages.map((pkg, index) => {
-              const resetPeriod = pkg.quota_reset_period || 'monthly';
-              const isSubscription = resetPeriod !== 'never' || pkg.creem_product_id || pkg.billing_interval;
+              const resetPeriod = pkg.quota_reset_period || 'never';
               const monthlyCredit = pkg.quota_amount > 0 ? pkg.quota_amount / Q : 0;
-              const interval = normalizeInterval(pkg);
+              const creditLabel = monthlyCredit > 0
+                ? resetPeriod === 'never'
+                  ? t('packages.creditIncluded', { symbol, amount: (monthlyCredit * rate).toFixed(2) })
+                  : t('packages.periodicQuota', { symbol, amount: (monthlyCredit * rate).toFixed(2), period: getResetLabel(resetPeriod) })
+                : 'Custom credit allocation';
               const isFeatured = index === 1 || pkg.recommended || pkg.is_popular;
               return (
                 <div
@@ -428,12 +333,14 @@ export default function Packages() {
                       <span className="text-3xl font-semibold tracking-normal text-page sm:text-4xl">
                         {fmtPlanPrice(pkg.price, pkg.currency)}
                       </span>
-                      <span className="pb-1 text-sm text-page-muted">/ {interval}</span>
                     </div>
                     {pkg.original_price > 0 && pkg.original_price > pkg.price && (
                       <p className="mt-1 text-sm text-page-muted line-through">
                         {fmtPlanPrice(pkg.original_price, pkg.currency)}
                       </p>
+                    )}
+                    {pkg.duration > 0 && (
+                      <p className="mt-2 text-sm text-page-muted">{t('packages.daysAccess', { count: pkg.duration })}</p>
                     )}
 
                     <div className="mt-6 rounded-lg border border-page-divider bg-page-surface/50 p-4">
@@ -441,10 +348,10 @@ export default function Packages() {
                         <RefreshCcw className="mt-0.5 text-page-secondary" size={18} />
                         <div>
                           <p className="text-sm font-semibold text-page">
-                           Balance purchase or subscription
+                            Balance purchase
                           </p>
                           <p className="mt-1 text-sm leading-6 text-page-secondary">
-                            Pay from account balance now, or use SaaS checkout for recurring subscription activation.
+                            Pay from your account balance and activate this package immediately.
                           </p>
                         </div>
                       </div>
@@ -453,7 +360,7 @@ export default function Packages() {
                     <ul className="mt-6 space-y-3 text-sm text-page-secondary">
                       <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-page-success" />
-                        <span>{monthlyCredit > 0 ? `${symbol}${(monthlyCredit * rate).toFixed(2)} ${getResetLabel(resetPeriod)} credit` : 'Custom credit allocation'}</span>
+                        <span>{creditLabel}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-page-success" />
@@ -461,11 +368,7 @@ export default function Packages() {
                       </li>
                       <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-page-success" />
-                        <span>Balance purchase uses your current account balance</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-page-success" />
-                        <span>Subscription checkout renews through the SaaS billing flow</span>
+                        <span>Purchase uses your current account balance</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-page-success" />
@@ -478,7 +381,7 @@ export default function Packages() {
                     <button
                       type="button"
                       onClick={() => handleBalancePurchase(pkg)}
-                      disabled={balanceLoading === pkg.id || checkoutLoading === pkg.id || checkoutSyncing}
+                      disabled={balanceLoading === pkg.id}
                       className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                         isFeatured
                           ? 'bg-brand-500 text-[#0b061f] hover:bg-brand-400'
@@ -492,26 +395,8 @@ export default function Packages() {
                         </>
                       ) : (
                         <>
-                          {user ? 'Buy with balance' : t('packages.signUpToSubscribe')}
+                          {user ? 'Buy with balance' : t('packages.signUpToBuy')}
                           <ArrowRight size={17} />
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSubscribe(pkg)}
-                      disabled={checkoutLoading === pkg.id || balanceLoading === pkg.id || checkoutSyncing}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-page-divider bg-page-surface/50 px-4 py-3 text-sm font-semibold text-page-secondary transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {checkoutLoading === pkg.id || checkoutSyncing ? (
-                        <>
-                          <Loader2 className="animate-spin" size={17} />
-                          {checkoutSyncing ? 'Activating' : 'Creating checkout'}
-                        </>
-                      ) : (
-                        <>
-                          {user ? 'Subscribe' : t('packages.signUpToSubscribe')}
-                          <RefreshCcw size={16} />
                         </>
                       )}
                     </button>
@@ -537,13 +422,13 @@ export default function Packages() {
           />
           <BillingStep
             icon={Sparkles}
-            title="Subscription"
-            desc="Use SaaS checkout when you want recurring billing."
+            title="Package activated"
+            desc="After confirmation, the package credits become available on your account."
           />
           <BillingStep
             icon={CalendarClock}
-            title="Renewal applied"
-            desc="Successful subscription renewals keep the plan active automatically."
+            title="Use until expiry"
+            desc="Track remaining credits and reset windows from your active packages."
           />
         </div>
       </CossSection>
@@ -603,9 +488,6 @@ export default function Packages() {
           <p className="text-sm leading-6 text-page-secondary">
             Your current balance is <span className="font-semibold text-page">{symbol}{userBalance.toFixed(2)}</span>.
             Please recharge before buying <span className="font-semibold text-page">{insufficientPkg.name}</span> with balance.
-          </p>
-          <p className="mt-3 text-sm leading-6 text-page-secondary">
-            You can also choose Subscribe to use the SaaS subscription checkout flow.
           </p>
         </PackageModal>
       )}
