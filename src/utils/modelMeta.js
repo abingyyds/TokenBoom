@@ -184,7 +184,7 @@ export const PUBLIC_MODEL_FIELDS = [
   'billing_mode',
   'is_per_call',
   'is_tiered_expr',
-  'fixed_price',
+  ...PRICE_FIELDS,
   'price_multiplier',
   'price_currency',
   'supported_endpoint_types',

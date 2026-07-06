@@ -1,4 +1,4 @@
-import { getMarketplaceModels, getPublicPricing, getSiteModels } from '../api';
+import { getMarketplaceModels, getPublicPricing, getSiteModels, getSitePricing } from '../api';
 import { PUBLIC_API_BASE_URL } from '../constants/api';
 import {
   extractCollection,
@@ -53,8 +53,9 @@ export const DOCS_CATALOG_QUERY = Object.freeze({
 });
 
 const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
+const CATALOG_FALLBACK_CACHE_TTL_MS = 15 * 1000;
 const CATALOG_STALE_TTL_MS = 24 * 60 * 60 * 1000;
-const CATALOG_STORAGE_PREFIX = 'public-model-catalog-cache:';
+const CATALOG_STORAGE_PREFIX = 'public-model-catalog-cache:v3:';
 const catalogCache = new Map();
 const rankedCatalogCache = new Map();
 const RANKED_METRICS_MODEL_LIMIT = 24;
@@ -84,26 +85,89 @@ const normalizeModelKey = (value) => String(value || '').trim().toLowerCase();
 
 const modelKeyCandidates = (model) => [
   model?.model_name,
+  model?.model,
   model?.upstream_model,
   model?.canonical,
   model?.canonical_model_name,
   model?.display_name,
   model?.name,
+  model?.id,
 ].map(normalizeModelKey).filter(Boolean);
 
-const normalizeSiteCatalog = (catalogResponse) =>
-  sortModels(
+const SITE_PRICING_FIELDS = [
+  'billing_expr',
+  'billing_type',
+  'billing_mode',
+  'is_per_call',
+  'is_tiered_expr',
+  'input_price',
+  'prompt_price',
+  'site_input_price',
+  'output_price',
+  'completion_price',
+  'site_output_price',
+  'fixed_price',
+  'price',
+  'call_price',
+  'cache_read_price',
+  'cache_read',
+  'cache_read_price_5m',
+  'cache_creation_price',
+  'cache_write_price',
+  'cache_creation',
+  'cache_creation_price_5m',
+  'cache_creation_price_1h',
+  'price_multiplier',
+  'price_currency',
+];
+
+const pickSitePricingFields = (row) => Object.fromEntries(
+  SITE_PRICING_FIELDS
+    .filter((field) => row?.[field] !== null && row?.[field] !== undefined && row?.[field] !== '')
+    .map((field) => [field, row[field]]),
+);
+
+const buildSitePricingIndex = (pricingResponse) => {
+  const index = new Map();
+  extractPricingRows(pricingResponse).forEach((row) => {
+    const pricing = pickSitePricingFields(row);
+    if (Object.keys(pricing).length === 0) return;
+    modelKeyCandidates(row).forEach((key) => {
+      if (!index.has(key)) index.set(key, pricing);
+    });
+  });
+  return index;
+};
+
+const mergeMissingSitePricing = (model, pricing = {}) => {
+  const merged = { ...model };
+  Object.entries(pricing).forEach(([field, value]) => {
+    if (merged[field] === null || merged[field] === undefined || merged[field] === '') {
+      merged[field] = value;
+    }
+  });
+  return merged;
+};
+
+const normalizeSiteCatalog = (catalogResponse, pricingResponse) => {
+  const pricingIndex = buildSitePricingIndex(pricingResponse);
+  return sortModels(
     extractCollection(catalogResponse, ['models'])
       .filter((model) => model && model.enabled !== false && getModelId(model))
-      .map((model, index) => ({
-        ...model,
-        id: model.id || model.model_name || model.name || model.display_name,
-        enabled: model.enabled !== false,
-        public_rank: model.public_rank ?? model.rank ?? model.sort_order ?? model.position ?? model.order ?? index,
-        data_source: 'site',
-      })),
+      .map((model, index) => {
+        const pricing = modelKeyCandidates(model).map((key) => pricingIndex.get(key)).find(Boolean);
+        const pricedModel = mergeMissingSitePricing(model, pricing);
+        return {
+          ...pricedModel,
+          id: pricedModel.id || pricedModel.model_name || pricedModel.name || pricedModel.display_name,
+          enabled: pricedModel.enabled !== false,
+          public_rank: pricedModel.public_rank ?? pricedModel.rank ?? pricedModel.sort_order ?? pricedModel.position ?? pricedModel.order ?? index,
+          data_source: 'site',
+        };
+      }),
     'popular',
   );
+};
 
 const readModelsFrom = (catalogResponse, pricingResponse, dataSource) => {
   const models = normalizeCatalog(catalogResponse, pricingResponse);
@@ -111,8 +175,8 @@ const readModelsFrom = (catalogResponse, pricingResponse, dataSource) => {
   return { models, dataSource };
 };
 
-const readSiteModelsFrom = (catalogResponse) => {
-  const models = normalizeSiteCatalog(catalogResponse);
+const readSiteModelsFrom = (catalogResponse, pricingResponse) => {
+  const models = normalizeSiteCatalog(catalogResponse, pricingResponse);
   if (models.length === 0) return null;
   return { models, dataSource: 'site' };
 };
@@ -220,6 +284,7 @@ const readStoredCatalog = (query) => {
   try {
     const cached = JSON.parse(window.localStorage.getItem(storageKeyFor(query)) || 'null');
     if (!cached?.result || !cached.cachedAt || Date.now() - cached.cachedAt > CATALOG_STALE_TTL_MS) return null;
+    if (cached.result.dataSource === 'fallback') return null;
     return cached.result;
   } catch {
     return null;
@@ -227,7 +292,7 @@ const readStoredCatalog = (query) => {
 };
 
 const writeStoredCatalog = (query, result) => {
-  if (typeof window === 'undefined' || !result?.models?.length) return;
+  if (typeof window === 'undefined' || !result?.models?.length || result.dataSource === 'fallback') return;
   try {
     window.localStorage.setItem(storageKeyFor(query), JSON.stringify({
       result,
@@ -239,14 +304,14 @@ const writeStoredCatalog = (query, result) => {
 };
 
 const FALLBACK_MODELS = [
-  { id: 'gpt-4o-mini', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', category: 'Chat', enabled: true },
-  { id: 'claude-sonnet-4-5', model_name: 'claude-sonnet-4-5', display_name: 'Claude Sonnet 4.5', category: 'Chat', enabled: true },
-  { id: 'gemini-2.5-pro', model_name: 'gemini-2.5-pro', display_name: 'Gemini 2.5 Pro', category: 'Multimodal', enabled: true },
-  { id: 'deepseek-chat', model_name: 'deepseek-chat', display_name: 'DeepSeek Chat', category: 'Chat', enabled: true },
-  { id: 'qwen-max', model_name: 'qwen-max', display_name: 'Qwen Max', category: 'Chat', enabled: true },
-  { id: 'grok-4', model_name: 'grok-4', display_name: 'Grok 4', category: 'Chat', enabled: true },
-  { id: 'claude-haiku-4-5', model_name: 'claude-haiku-4-5', display_name: 'Claude Haiku 4.5', category: 'Chat', enabled: true },
-  { id: 'gpt-5-mini', model_name: 'gpt-5-mini', display_name: 'GPT-5 Mini', category: 'Chat', enabled: true },
+  { id: 'gpt-4o-mini', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', category: 'Chat', enabled: true, data_source: 'fallback' },
+  { id: 'claude-sonnet-4-5', model_name: 'claude-sonnet-4-5', display_name: 'Claude Sonnet 4.5', category: 'Chat', enabled: true, data_source: 'fallback' },
+  { id: 'gemini-2.5-pro', model_name: 'gemini-2.5-pro', display_name: 'Gemini 2.5 Pro', category: 'Multimodal', enabled: true, data_source: 'fallback' },
+  { id: 'deepseek-chat', model_name: 'deepseek-chat', display_name: 'DeepSeek Chat', category: 'Chat', enabled: true, data_source: 'fallback' },
+  { id: 'qwen-max', model_name: 'qwen-max', display_name: 'Qwen Max', category: 'Chat', enabled: true, data_source: 'fallback' },
+  { id: 'grok-4', model_name: 'grok-4', display_name: 'Grok 4', category: 'Chat', enabled: true, data_source: 'fallback' },
+  { id: 'claude-haiku-4-5', model_name: 'claude-haiku-4-5', display_name: 'Claude Haiku 4.5', category: 'Chat', enabled: true, data_source: 'fallback' },
+  { id: 'gpt-5-mini', model_name: 'gpt-5-mini', display_name: 'GPT-5 Mini', category: 'Chat', enabled: true, data_source: 'fallback' },
 ];
 
 export const fallbackCatalog = {
@@ -262,10 +327,11 @@ const readCatalogCache = (query) => {
 
 const fetchCatalog = async (query) => {
   const publicPricingPromise = getPublicPricing().catch(() => null);
+  const sitePricingPromise = getSitePricing().catch(() => null);
 
   try {
     const catalogResponse = await getSiteModels();
-    const siteCatalog = readSiteModelsFrom(catalogResponse);
+    const siteCatalog = readSiteModelsFrom(catalogResponse, await sitePricingPromise);
     if (siteCatalog) return siteCatalog;
   } catch (siteError) {
     // Fall through to the public marketplace catalog.
@@ -279,7 +345,7 @@ const fetchCatalog = async (query) => {
     // Fall through to static fallback models.
   }
 
-  return fallbackCatalog;
+  return readStoredCatalog(query) || fallbackCatalog;
 };
 
 export const getPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => {
@@ -294,9 +360,10 @@ export const getPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => {
 
   const promise = fetchCatalog(query)
     .then((result) => {
+      const ttl = result.dataSource === 'fallback' ? CATALOG_FALLBACK_CACHE_TTL_MS : CATALOG_CACHE_TTL_MS;
       catalogCache.set(key, {
         result,
-        expiresAt: Date.now() + CATALOG_CACHE_TTL_MS,
+        expiresAt: Date.now() + ttl,
       });
       writeStoredCatalog(query, result);
       return result;
@@ -322,9 +389,10 @@ export const getRankedModelCatalog = async (query = PUBLIC_CATALOG_QUERY) => {
 
   const promise = Promise.all([
     getSiteModels(),
+    getSitePricing().catch(() => null),
   ])
-    .then(async ([siteResponse]) => {
-      const siteCatalog = readSiteModelsFrom(siteResponse);
+    .then(async ([siteResponse, sitePricingResponse]) => {
+      const siteCatalog = readSiteModelsFrom(siteResponse, sitePricingResponse);
       if (!siteCatalog) return fallbackCatalog;
       const metricsMap = await fetchMarketplaceMetricsForSiteModels(siteCatalog.models, query);
       const result = {

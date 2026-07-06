@@ -31,6 +31,7 @@ const discounted = (value) => {
 export default function ModelPrice({ model, compact = false }) {
   const { symbol, rate, code, usdRate } = useCurrency();
   const showSitePricing = hasSitePricing(model);
+  const dataSource = String(model?.data_source || model?.dataSource || '').toLowerCase();
 
   if (showSitePricing) {
     const tieredRows = parseTieredSecondPricing(model?.billing_expr);
@@ -103,9 +104,10 @@ export default function ModelPrice({ model, compact = false }) {
   const pricing = getOfficialPricing(model);
 
   if (!pricing) {
+    const label = dataSource === 'fallback' ? 'Site pricing unavailable' : 'Pricing unavailable';
     return (
-      <span className="text-sm text-page-muted" title="No official pricing row was returned by the public pricing feed for this model">
-        Official pricing unavailable
+      <span className="text-sm text-page-muted" title="No site or public pricing row is currently available for this model">
+        {label}
       </span>
     );
   }

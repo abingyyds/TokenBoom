@@ -27,8 +27,6 @@ import {
   buildPythonSnippet,
   firstNumber,
   formatCompactNumber,
-  formatOfficialPerCall,
-  formatOfficialTokenPrice,
   getModelCategory,
   getModelDisplayName,
   getModelId,
@@ -37,19 +35,12 @@ import {
   getOfficialPricing,
   getPreferredMode,
   getSupportedModes,
+  hasSitePricing,
   isPerCallModel,
   isTieredExprModel,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
 import { usePublicApiBaseUrl } from '../context/SiteContext';
-
-const TOKENBOOM_PRICE_MULTIPLIER = 0.8;
-
-const discounted = (value) => {
-  if (value === undefined || value === null || value === '') return value;
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric * TOKENBOOM_PRICE_MULTIPLIER : value;
-};
 
 export default function ModelDetail() {
   const { modelId } = useParams();
@@ -111,12 +102,13 @@ export default function ModelDetail() {
   const modelName = getModelDisplayName(model);
   const id = getModelId(model);
   const officialPricing = getOfficialPricing(model);
+  const sitePricing = hasSitePricing(model);
   const billingType = isTieredExprModel(model)
     ? 'Video seconds'
     : isPerCallModel(model)
       ? 'Per request'
-      : officialPricing?.type === 'token'
-        ? 'Token USD'
+      : sitePricing || officialPricing?.type === 'token'
+        ? 'Token pricing'
         : 'Unavailable';
   const preferredMode = getPreferredMode(model);
   const supportedModes = getSupportedModes(model);
@@ -246,40 +238,13 @@ export default function ModelDetail() {
 
           <CossCardFrame className="overflow-hidden">
             <div className="border-b border-page-divider bg-page-surface/40 px-5 py-4">
-              <h2 className="text-xl font-semibold text-page">TokenBoom price table</h2>
+              <h2 className="text-xl font-semibold text-page">Site price table</h2>
               <p className="mt-2 text-sm leading-6 text-page-secondary">
-                TokenBoom prices are 20% off official pricing. Official values are shown for comparison.
+                Prices come from this site's catalog when available, with public marketplace pricing used only as a fallback.
               </p>
             </div>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[560px] text-sm">
-                <thead>
-                  <tr className="border-b border-page-divider text-left text-page-muted">
-                    <th className="px-5 py-3 font-medium">Billing</th>
-                    <th className="px-5 py-3 text-right font-medium">Input USD</th>
-                    <th className="px-5 py-3 text-right font-medium">Output USD</th>
-                    <th className="px-5 py-3 text-right font-medium">Per call</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <PriceRow officialPricing={officialPricing} />
-                </tbody>
-              </table>
-            </div>
-            <div className="grid gap-3 p-4 md:hidden">
-              <MobilePriceRow label="Billing" value={billingLabel(officialPricing)} />
-              <MobilePriceRow
-                label="Input USD"
-                value={officialPricing?.type === 'token' ? formatDiscountedTokenPrice(officialPricing.inputPrice ?? officialPricing.inputRatio) : '-'}
-              />
-              <MobilePriceRow
-                label="Output USD"
-                value={officialPricing?.type === 'token' ? formatDiscountedTokenPrice(officialPricing.outputPrice ?? officialPricing.outputRatio) : '-'}
-              />
-              <MobilePriceRow
-                label="Per call"
-                value={officialPricing?.type === 'per_call' ? formatDiscountedPerCall(officialPricing.modelPrice) : '-'}
-              />
+            <div className="p-5">
+              <ModelPrice model={model} />
             </div>
           </CossCardFrame>
         </div>
@@ -310,69 +275,6 @@ function MetaRow({ label, value, copy = false }) {
       </dd>
     </div>
   );
-}
-
-function PriceRow({ officialPricing }) {
-  return (
-    <tr className="border-b border-page-divider last:border-0">
-      <td className="px-5 py-4 font-medium text-page">{billingLabel(officialPricing)}</td>
-      <td className="px-5 py-4 text-right font-mono text-page-secondary">
-        {officialPricing?.type === 'token'
-          ? <DiscountedPrice value={officialPricing.inputPrice ?? officialPricing.inputRatio} formatter={formatOfficialTokenPrice} />
-          : '-'}
-      </td>
-      <td className="px-5 py-4 text-right font-mono text-page-secondary">
-        {officialPricing?.type === 'token'
-          ? <DiscountedPrice value={officialPricing.outputPrice ?? officialPricing.outputRatio} formatter={formatOfficialTokenPrice} />
-          : '-'}
-      </td>
-      <td className="px-5 py-4 text-right font-mono text-page-secondary">
-        {officialPricing?.type === 'per_call'
-          ? <DiscountedPrice value={officialPricing.modelPrice} formatter={formatOfficialPerCall} />
-          : '-'}
-      </td>
-    </tr>
-  );
-}
-
-function formatDiscountedTokenPrice(value) {
-  const official = formatOfficialTokenPrice(value);
-  const current = formatOfficialTokenPrice(discounted(value));
-  return current === '-' ? '-' : `${current} (20% off, official ${official})`;
-}
-
-function formatDiscountedPerCall(value) {
-  const official = formatOfficialPerCall(value);
-  const current = formatOfficialPerCall(discounted(value));
-  return current === '-' ? '-' : `${current} (20% off, official ${official})`;
-}
-
-function DiscountedPrice({ value, formatter }) {
-  const official = formatter(value);
-  const current = formatter(discounted(value));
-  if (current === '-') return '-';
-  return (
-    <span className="inline-flex flex-col items-end gap-0.5">
-      <span className="text-page">{current}</span>
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-page-success">20% off</span>
-      {official !== '-' && <span className="text-[11px] text-page-muted line-through">Official {official}</span>}
-    </span>
-  );
-}
-
-function MobilePriceRow({ label, value }) {
-  return (
-    <CossMutedCard className="flex items-center justify-between gap-3 px-3 py-2">
-      <span className="text-xs font-medium text-page-muted">{label}</span>
-      <span className="text-right font-mono text-sm text-page-secondary">{value}</span>
-    </CossMutedCard>
-  );
-}
-
-function billingLabel(officialPricing) {
-  if (officialPricing?.type === 'per_call') return 'Per call';
-  if (officialPricing?.type === 'token') return 'Token USD';
-  return 'Unavailable';
 }
 
 function getUseCases(model) {
